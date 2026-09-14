@@ -42,5 +42,5 @@ htmlcov/
 tmp/
 
 # Project-specific generated output
-outputs/
+output/
 out/

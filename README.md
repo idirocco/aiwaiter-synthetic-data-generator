@@ -8,7 +8,7 @@ The project is orchestrated by `pipeline.py` and runs in the following stages:
 
 1. Step 1: Generation
    - Generates Q&A items for each configured restaurant category.
-   - Saves the output to `step1_generated_qa.json`.
+   - Saves the output to `output/step1_generated_qa.json`.
    - Each item includes a top-level `metadata` object with fields such as:
      - `category_name`
      - `category_description`
@@ -25,11 +25,11 @@ The project is orchestrated by `pipeline.py` and runs in the following stages:
 
 3. Step 3: Human labeling
    - Prompts a reviewer to label each item across six quality dimensions.
-   - Saves results to `step3_human_labels.json`.
+   - Saves results to `output/step3_human_labels.json`.
 
 4. Step 4: LLM-as-judge
    - Uses an independent model to score the same six dimensions.
-   - Saves results to `step4_llm_judge_labels.json`.
+   - Saves results to `output/step4_llm_judge_labels.json`.
 
 ## Setup
 
@@ -77,13 +77,13 @@ python3 pipeline.py step3
 python3 pipeline.py step4
 ```
 
-Note: Step 1 asks for confirmation before regenerating an existing `step1_generated_qa.json` file.
+Note: Step 1 asks for confirmation before regenerating an existing `output/step1_generated_qa.json` file.
 
 ## Project structure
 
 - `pipeline.py` — orchestrates the pipeline and dispatches each stage
 - `config.py` — shared model config, categories, prompts, and client setup
-- `step1_generation.py` — generates Q&A pairs and writes `step1_generated_qa.json`
+- `step1_generation.py` — generates Q&A pairs and writes `output/step1_generated_qa.json`
 - `step2_validation.py` — validation, deduplication, and category-distribution checks
 - `step3_human_labeling.py` — interactive human review tool and label export
 - `step4_llm_as_judge.py` — LLM-based quality scoring and export
@@ -94,9 +94,9 @@ Note: Step 1 asks for confirmation before regenerating an existing `step1_genera
 
 ## Output files
 
-- `step1_generated_qa.json` — generated Q&A dataset with metadata per item
-- `step3_human_labels.json` — human-labeled results
-- `step4_llm_judge_labels.json` — LLM judge results
+- `output/step1_generated_qa.json` — generated Q&A dataset with metadata per item
+- `output/step3_human_labels.json` — human-labeled results
+- `output/step4_llm_judge_labels.json` — LLM judge results
 
 ## Example Step 1 JSON item
 
