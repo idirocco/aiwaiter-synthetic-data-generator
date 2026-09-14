@@ -2,6 +2,9 @@
 
 This project generates synthetic restaurant customer/waiter Q&A data using OpenRouter and the OpenAI-compatible API.
 
+Pipeline that generates high-quality synthetic Q&A data for an AI Waiter assistant. Generates structured dining-service guidance, run data-quality checks (deduplication + category-distribution), label each item across 6 quality dimensions using both human review and an independent LLM-as-Judge, log results and trace segments, and then retrace poorly performing segments to iteratively improve the generation prompt.
+
+
 ## Setup
 
 1. Create and activate a virtual environment (optional but recommended):
