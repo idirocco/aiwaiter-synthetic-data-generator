@@ -3,12 +3,14 @@
 # Labels are saved per item with a trace_id.
 
 import json
+import uuid
 from pathlib import Path
 
+from config import output_path
 from quality_dimensions import QUALITY_DIMENSIONS
 
 
-def save_human_labels_to_json(labeled_records, output_path: str = "step3_human_labels.json"):
+def save_human_labels_to_json(labeled_records, output_path: str = str(output_path("step3_human_labels.json"))):
     output_records = []
 
     for idx, record in enumerate(labeled_records):
@@ -27,6 +29,7 @@ def save_human_labels_to_json(labeled_records, output_path: str = "step3_human_l
         output_records.append(output_record)
 
     output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     output_file.write_text(json.dumps(output_records, indent=2), encoding="utf-8")
     print(f"Saved human labels to: {output_file.resolve()}")
     return str(output_file)
@@ -46,8 +49,24 @@ def run_human_labeling(all_generated_qa_records):
         trace_id = str(uuid.uuid4())
 
         print(f"\n--- Labeling Record {i + 1}/{len(all_generated_qa_records)} (Trace ID: {trace_id[:8]}...) ---")
-        print(f"Question: {qa_item.question}")
-        print(f"Answer (snippet): {qa_item.answer}")
+        print("Full record:")
+        print(json.dumps(
+            {
+                "question": qa_item.question,
+                "answer": qa_item.answer,
+                "dining_scenario": qa_item.dining_scenario,
+                "menu_items": list(qa_item.menu_items),
+                "service_steps": list(qa_item.service_steps),
+                "safety_info": qa_item.safety_info,
+                "tips": list(qa_item.tips),
+                "category_name": record.get("category_name"),
+                "category_description": record.get("category_description"),
+                "timestamp": record.get("timestamp"),
+                "model_name": record.get("model_name"),
+            },
+            indent=2,
+            ensure_ascii=False,
+        ))
 
         human_labels = {}
         for dimension in QUALITY_DIMENSIONS:

@@ -1,9 +1,19 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
 MODEL_NAME = "anthropic/claude-sonnet-4.6"
+OUTPUT_DIR = Path("output")
+
+def ensure_output_dir() -> Path:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    return OUTPUT_DIR
+
+def output_path(filename: str) -> Path:
+    ensure_output_dir()
+    return OUTPUT_DIR / filename
 
 
 def print_startup_banner():

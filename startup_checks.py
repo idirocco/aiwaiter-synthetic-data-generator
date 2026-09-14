@@ -1,6 +1,8 @@
 import importlib.util
 import os
 
+from config import ensure_output_dir
+
 REQUIRED_PACKAGES = ["openai", "dotenv", "instructor", "pydantic"]
 
 
@@ -26,5 +28,6 @@ def ensure_openrouter_key():
 
 
 def run_startup_checks():
+    ensure_output_dir()
     ensure_dependencies()
     ensure_openrouter_key()

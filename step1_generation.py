@@ -5,6 +5,8 @@ from pathlib import Path
 import instructor
 from pydantic import BaseModel, Field
 
+from config import output_path
+
 
 class QAItem(BaseModel):
     question: str = Field(min_length=1, description="A realistic question or request from a restaurant guest")
@@ -20,7 +22,7 @@ class QADataset(BaseModel):
     qa_pairs: list[QAItem]
 
 
-def load_step1_records(input_path: str = "step1_generated_qa.json"):
+def load_step1_records(input_path: str = str(output_path("step1_generated_qa.json"))):
     input_file = Path(input_path)
     if not input_file.exists():
         raise FileNotFoundError(f"Step 1 output file not found: {input_file.resolve()}")
@@ -58,7 +60,7 @@ def load_step1_records(input_path: str = "step1_generated_qa.json"):
     return loaded_records
 
 
-def save_generated_qa_json(all_generated_qa_records, output_path: str = "step1_generated_qa.json"):
+def save_generated_qa_json(all_generated_qa_records, output_path: str = str(output_path("step1_generated_qa.json"))):
     output_records = []
     for record in all_generated_qa_records:
         qa_item = record["qa_item"]
@@ -84,12 +86,13 @@ def save_generated_qa_json(all_generated_qa_records, output_path: str = "step1_g
         )
 
     output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     output_file.write_text(json.dumps(output_records, indent=2), encoding="utf-8")
     print(f"Saved generated Q&A items to: {output_file.resolve()}")
     return str(output_file)
 
 
-def generate_step1(client, MODEL_NAME, categories, prompt, items_per_category=3, output_path: str = "step1_generated_qa.json"):
+def generate_step1(client, MODEL_NAME, categories, prompt, items_per_category=3, output_path: str = str(output_path("step1_generated_qa.json"))):
     output_file = Path(output_path)
     if output_file.exists():
         user_choice = input(
