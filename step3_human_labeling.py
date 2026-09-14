@@ -1,0 +1,79 @@
+# Step 3 (Human Labeling — 6 Dimensions):
+# A simple Python CLI walks a reviewer through each item and collects binary pass/fail labels on all 6 quality dimensions.
+# Labels are saved per item with a trace_id.
+
+import json
+from pathlib import Path
+
+from quality_dimensions import QUALITY_DIMENSIONS
+
+
+def save_human_labels_to_json(labeled_records, output_path: str = "step3_human_labels.json"):
+    output_records = []
+
+    for idx, record in enumerate(labeled_records):
+        labels = record.get("human_labels", {})
+        trace_id = record.get("trace_id") or f"qa_{idx + 1:03d}"
+
+        output_record = {
+            "trace_id": trace_id,
+            "labeler": "human",
+        }
+
+        for dimension in QUALITY_DIMENSIONS:
+            output_record[dimension] = int(bool(labels.get(dimension, False)))
+
+        output_record["overall_pass"] = bool(all(labels.get(dimension, False) for dimension in QUALITY_DIMENSIONS))
+        output_records.append(output_record)
+
+    output_file = Path(output_path)
+    output_file.write_text(json.dumps(output_records, indent=2), encoding="utf-8")
+    print(f"Saved human labels to: {output_file.resolve()}")
+    return str(output_file)
+
+
+def run_human_labeling(all_generated_qa_records):
+    print("\n--- Starting Interactive Human Labeling (Step 3) ---")
+
+    human_labeled_records = []
+
+    if not all_generated_qa_records:
+        print("No records available for Step 3 labeling.")
+        return human_labeled_records
+
+    for i, record in enumerate(all_generated_qa_records):
+        qa_item = record["qa_item"]
+        trace_id = str(uuid.uuid4())
+
+        print(f"\n--- Labeling Record {i + 1}/{len(all_generated_qa_records)} (Trace ID: {trace_id[:8]}...) ---")
+        print(f"Question: {qa_item.question}")
+        print(f"Answer (snippet): {qa_item.answer}")
+
+        human_labels = {}
+        for dimension in QUALITY_DIMENSIONS:
+            while True:
+                user_input = input(f"  {dimension} (y/n): ").strip().lower()
+                if user_input in ["y", "yes"]:
+                    human_labels[dimension] = True
+                    break
+                if user_input in ["n", "no"]:
+                    human_labels[dimension] = False
+                    break
+                print("Invalid input. Please enter 'y' or 'n'.")
+
+        labeled_record = record.copy()
+        labeled_record["trace_id"] = trace_id
+        labeled_record["human_labels"] = human_labels
+        human_labeled_records.append(labeled_record)
+
+    save_human_labels_to_json(human_labeled_records)
+
+    print("\n--- Interactive Human Labeling Completed ---")
+    print(f"Total human-labeled records: {len(human_labeled_records)}")
+    if human_labeled_records:
+        print(f"First record's trace_id: {human_labeled_records[0]['trace_id']}")
+        print(f"First record's human labels: {human_labeled_records[0]['human_labels']}")
+    else:
+        print("No records were labeled.")
+
+    return human_labeled_records
