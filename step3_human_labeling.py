@@ -3,7 +3,6 @@
 # Labels are saved per item with a trace_id.
 
 import json
-import uuid
 from pathlib import Path
 
 from config import output_path
@@ -46,9 +45,9 @@ def run_human_labeling(all_generated_qa_records):
 
     for i, record in enumerate(all_generated_qa_records):
         qa_item = record["qa_item"]
-        trace_id = str(uuid.uuid4())
+        trace_id = f"qa_{i + 1:03d}"
 
-        print(f"\n--- Labeling Record {i + 1}/{len(all_generated_qa_records)} (Trace ID: {trace_id[:8]}...) ---")
+        print(f"\n--- Labeling Record {i + 1}/{len(all_generated_qa_records)} (Trace ID: {trace_id}) ---")
         print("Full record:")
         print(json.dumps(
             {
