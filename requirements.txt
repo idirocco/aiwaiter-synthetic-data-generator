@@ -2,3 +2,5 @@ openai
 python-dotenv
 instructor
 pydantic
+matplotlib
+seaborn

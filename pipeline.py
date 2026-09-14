@@ -8,6 +8,7 @@ from step1_generation import generate_step1, load_step1_records
 from step2_validation import validate_step2
 from step3_human_labeling import run_human_labeling
 from step4_llm_as_judge import run_llm_judge
+from step5_analysis_visualization import run_step5_analysis
 
 
 run_startup_checks()
@@ -53,12 +54,16 @@ def main(step: str | None = None):
     if step_name == "step4":
         return run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME)
 
+    if step_name == "step5":
+        return run_step5_analysis()
+
     if step_name not in {"all", ""}:
         raise ValueError(f"Unsupported pipeline step: {step!r}")
 
     all_generated_qa_records = validate_step2(all_generated_qa_records)
     run_human_labeling(all_generated_qa_records)
-    return run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME)
+    run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME)
+    return run_step5_analysis()
 
 
 if __name__ == "__main__":
