@@ -71,7 +71,8 @@ Q&A Dataset details:
 - Menu items listed are dishes and drinks a typical mid-range, full-service restaurant would realistically offer, each priced under $50
 - Service steps are concrete and specific enough to follow without guessing. They include quantities, timings, or observable indicators where relevant (e.g., \"check back within 2 minutes of the plates landing\", \"medium means a warm pink center, about 140°F / 60°C\")
 
-Generate {items_per_category} items that belong to the category {category}.
+Generate {items_per_category} items for each of the following categories. The combined dataset should cover all categories evenly and reflect realistic restaurant service scenarios across the entire range:
+{categories}
 
 Example Q&A item:
 `

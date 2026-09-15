@@ -2,6 +2,8 @@
 # Install dependencies first:
 #   python3 -m pip install -r requirements.txt
 
+from pathlib import Path
+
 from config import CATEGORIES, MODEL_NAME, PROMPT, get_client, print_modules_loaded, print_startup_banner
 from startup_checks import run_startup_checks
 from step1_generation import generate_step1, load_step1_records
@@ -31,7 +33,24 @@ def main(step: str | None = None):
         )
 
     try:
-        all_generated_qa_records = load_step1_records()
+        output_file = Path("output/step1_generated_qa.json")
+        if step_name in {"step2", "step3", "step4", "all"} and output_file.exists():
+            user_choice = input(
+                f"Step 1 output file already exists at {output_file.resolve()}. Regenerate it? [y/N]: "
+            ).strip().lower()
+            if user_choice in {"y", "yes"}:
+                all_generated_qa_records = generate_step1(
+                    client=client,
+                    MODEL_NAME=MODEL_NAME,
+                    categories=CATEGORIES,
+                    prompt=PROMPT,
+                    items_per_category=3,
+                )
+                all_generated_qa_records = load_step1_records()
+            else:
+                all_generated_qa_records = load_step1_records()
+        else:
+            all_generated_qa_records = load_step1_records()
     except FileNotFoundError:
         if step_name in {"step2", "step3", "step4", "all"}:
             all_generated_qa_records = generate_step1(
