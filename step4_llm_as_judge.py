@@ -3,6 +3,7 @@
 # structured Instructor/Pydantic schema and a lower temperature for deterministic scoring.
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +52,15 @@ Return a structured result: overall_pass + one verdict per dimension.
 """
 
 
-def save_judge_results_to_json(judged_records, output_path: str = str(output_path("step4_llm_judge_labels.json"))):
+def timestamped_output_path(prefix: str = "step4_llm_judge_labels") -> str:
+    timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+    return str(output_path(f"{prefix}_{timestamp}.json"))
+
+
+def save_judge_results_to_json(judged_records, output_path: str | None = None):
+    if output_path is None:
+        output_path = timestamped_output_path()
+
     output_records = []
     for idx, record in enumerate(judged_records):
         verdicts = record.get("llm_judge_labels", {})
@@ -76,7 +85,9 @@ def save_judge_results_to_json(judged_records, output_path: str = str(output_pat
     return str(output_file)
 
 
-def run_llm_judge(all_generated_qa_records, client, model_name: str, temperature: float = 0.0, output_path: str = str(output_path("step4_llm_judge_labels.json"))):
+def run_llm_judge(all_generated_qa_records, client, model_name: str, temperature: float = 0.0, output_path: str | None = None):
+    if output_path is None:
+        output_path = timestamped_output_path()
     patched_client = instructor.patch(client)
 
     judged_records = []
