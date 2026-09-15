@@ -70,8 +70,8 @@ def run_human_labeling(all_generated_qa_records):
         human_labels = {}
         for dimension in QUALITY_DIMENSIONS:
             while True:
-                user_input = input(f"  {dimension} (y/n): ").strip().lower()
-                if user_input in ["y", "yes"]:
+                user_input = input(f"  {dimension} (Y/n): ").strip().lower()
+                if user_input in ["", "y", "yes"]:
                     human_labels[dimension] = True
                     break
                 if user_input in ["n", "no"]:
