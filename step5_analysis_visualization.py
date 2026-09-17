@@ -16,7 +16,8 @@ except Exception:  # pragma: no cover - plotting is optional in minimal environm
     sns = None
 
 OUTPUT_DIR = Path("output")
-VISUALIZATION_DIR = OUTPUT_DIR
+VISUALIZATION_DIR = Path("visualizations")
+VISUALIZATION_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _read_json(path: str | Path) -> list[dict[str, Any]]:
@@ -393,6 +394,7 @@ def generate_step5_visualizations(records: Iterable[dict[str, Any]], output_dir:
     plot_category_distribution(record_list, saved_paths["category_distribution"])
     plot_before_after_per_dimension(record_list, saved_paths["before_after"])
 
+    print(f"Saved step 5 visualizations to: {output_dir.resolve()}")
     return saved_paths
 
 
