@@ -31,6 +31,12 @@ The project is orchestrated by `pipeline.py` and runs in the following stages:
    - Uses an independent model to score the same six dimensions.
    - Saves results to `output/step4_llm_judge_labels.json`.
 
+5. Step 5: Analysis and visualization
+   - Merges Step 1 Q&A with Step 3 human labels and Step 4 LLM-as-judge labels.
+   - Computes per-dimension pass rates and human vs. LLM agreement.
+   - Aggregates metrics by restaurant category and prompt variant.
+   - Writes charts to `visualizations/`.
+
 ## Setup
 
 1. Create and activate a virtual environment (recommended):
@@ -75,6 +81,7 @@ python3 pipeline.py step1
 python3 pipeline.py step2
 python3 pipeline.py step3
 python3 pipeline.py step4
+python3 pipeline.py step5
 ```
 
 Note: Step 1 asks for confirmation before regenerating an existing `output/step1_generated_qa.json` file.
@@ -87,6 +94,7 @@ Note: Step 1 asks for confirmation before regenerating an existing `output/step1
 - `step2_validation.py` — validation, deduplication, and category-distribution checks
 - `step3_human_labeling.py` — interactive human review tool and label export
 - `step4_llm_as_judge.py` — LLM-based quality scoring and export
+- `step5_analysis_visualization.py` — merges labels, computes metrics, and writes charts
 - `quality_dimensions.py` — Six quality dimensions used across labeling and judging
 - `startup_checks.py` — dependency and environment validation before pipeline startup
 - `requirements.txt` — project dependencies
@@ -97,6 +105,11 @@ Note: Step 1 asks for confirmation before regenerating an existing `output/step1
 - `output/step1_generated_qa.json` — generated Q&A dataset with metadata per item
 - `output/step3_human_labels.json` — human-labeled results
 - `output/step4_llm_judge_labels.json` — LLM judge results
+- `visualizations/step5_segment_heatmap.png` — LLM pass rates by category and quality dimension
+- `visualizations/step5_dimension_pass_rates.png` — human vs. LLM pass rates by dimension
+- `visualizations/step5_human_llm_agreement.png` — agreement rates by dimension
+- `visualizations/step5_category_distribution.png` — generated category counts vs. a balanced benchmark
+- `visualizations/step5_before_after_per_dimension.png` — mean pass rates by prompt variant
 
 ## Example Step 1 JSON item
 
@@ -139,3 +152,4 @@ Note: Step 1 asks for confirmation before regenerating an existing `output/step1
 - The application exits early if required Python packages are missing.
 - The application exits early if `OPENROUTER_API_KEY` is not set.
 - Step 2 expects `record["metadata"]["category_name"]` to exist, so Step 1 keeps category metadata in the on-disk JSON payload.
+- Step 5 reads `output/step1_generated_qa.json`, `output/step3_human_labels.json`, and `output/step4_llm_judge_labels.json`. Missing label files are treated as empty, so pass/agreement rates will be zero until those steps have been run.
