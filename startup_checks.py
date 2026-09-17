@@ -1,6 +1,8 @@
 import importlib.util
 import os
 
+from dotenv import load_dotenv
+
 from config import ensure_output_dir
 
 REQUIRED_PACKAGES = ["openai", "dotenv", "instructor", "pydantic"]
@@ -18,6 +20,7 @@ def ensure_dependencies():
 
 
 def ensure_openrouter_key():
+    load_dotenv()
     if not os.getenv("OPENROUTER_API_KEY"):
         print("Missing environment variable: OPENROUTER_API_KEY")
         print("Please set it in your shell or .env file before running the pipeline:")
