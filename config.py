@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
-MODEL_NAME = "anthropic/claude-sonnet-4.6"
+MODEL_NAME = "meta-llama/llama-3.1-8b-instruct"
 OUTPUT_DIR = Path("output")
 
 def ensure_output_dir() -> Path:
