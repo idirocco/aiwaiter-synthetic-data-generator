@@ -92,9 +92,17 @@ def save_generated_qa_json(all_generated_qa_records, output_path: str = str(outp
     return str(output_file)
 
 
-def generate_step1(client, MODEL_NAME, categories, prompt, items_per_category=3, output_path: str = str(output_path("step1_generated_qa.json"))):
+def generate_step1(
+    client,
+    MODEL_NAME,
+    categories,
+    prompt,
+    items_per_category=3,
+    output_path: str = str(output_path("step1_generated_qa.json")),
+    force_regenerate: bool = False,
+):
     output_file = Path(output_path)
-    if output_file.exists():
+    if output_file.exists() and not force_regenerate:
         user_choice = input(
             f"Step 1 output file already exists at {output_file.resolve()}. Regenerate it? [y/N]: "
         ).strip().lower()

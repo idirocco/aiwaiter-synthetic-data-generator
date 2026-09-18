@@ -45,6 +45,7 @@ def main(step: str | None = None):
                     categories=CATEGORIES,
                     prompt=PROMPT,
                     items_per_category=3,
+                    force_regenerate=True,
                 )
                 all_generated_qa_records = load_step1_records()
             else:
@@ -59,6 +60,7 @@ def main(step: str | None = None):
                 categories=CATEGORIES,
                 prompt=PROMPT,
                 items_per_category=3,
+                force_regenerate=True,
             )
             all_generated_qa_records = load_step1_records()
         else:
