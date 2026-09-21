@@ -1,5 +1,6 @@
 import datetime
 import json
+import sys
 from pathlib import Path
 
 import instructor
@@ -97,18 +98,25 @@ def generate_step1(
     MODEL_NAME,
     categories,
     prompt,
-    items_per_category=3,
+    items_per_category=10,
     output_path: str = str(output_path("step1_generated_qa.json")),
     force_regenerate: bool = False,
 ):
     output_file = Path(output_path)
     if output_file.exists() and not force_regenerate:
-        user_choice = input(
-            f"Step 1 output file already exists at {output_file.resolve()}. Regenerate it? [y/N]: "
-        ).strip().lower()
-        if user_choice not in {"y", "yes"}:
-            print("Step 1 generation cancelled. Existing JSON file was kept.")
-            return []
+        if sys.stdin is not None and hasattr(sys.stdin, "isatty") and sys.stdin.isatty():
+            user_choice = input(
+                f"Step 1 output file already exists at {output_file.resolve()}. Regenerate it? [y/N]: "
+            ).strip().lower()
+            if user_choice not in {"y", "yes"}:
+                print("Step 1 generation cancelled. Existing JSON file was kept.")
+                return []
+        else:
+            print(
+                f"Step 1 output file already exists at {output_file.resolve()}. "
+                "Non-interactive session detected; regenerating without prompting."
+            )
+            force_regenerate = True
 
     if not categories:
         print("No categories provided for Step 1 generation.")
@@ -118,72 +126,81 @@ def generate_step1(
     # This patches the client to automatically parse the response into the specified Pydantic model.
     patched_client = instructor.patch(client)
 
-    prompt_categories = "\n".join(
-        f"{idx}. {category['name']}: {category['description']}"
-        for idx, category in enumerate(categories, start=1)
-    )
-    formatted_prompt = prompt.format(
-        categories=prompt_categories,
-        items_per_category=items_per_category,
-    )
+    print("\nCategories:")
+    for idx, category in enumerate(categories, start=1):
+        print(f"{idx}. {category['name']}: {category['description']}")
+    print(f"\nItems per category: {items_per_category}")
+    print(f"\nGenerating {items_per_category * len(categories)} Q&A pairs across {len(categories)} categories...\n")
 
-    print(f"\nGenerating {items_per_category * len(categories)} Q&A pairs in one shot across all categories...")
+    all_generated_qa_records = []
 
     try:
-        response_pydantic_model = patched_client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant that generates synthetic Q&A pairs for restaurant customer-waiter interactions based on a given schema.",
-                },
-                {"role": "user", "content": formatted_prompt},
-            ],
-            response_model=QADataset,
-            max_retries=3,
-        )
-
-        all_generated_qa_records = []
-        total_items = len(response_pydantic_model.qa_pairs)
-        print(f"Generated {total_items} pairs across all categories:")
-
-        for i, qa_item in enumerate(response_pydantic_model.qa_pairs):
-            category_index = i % len(categories)
-            category_name = categories[category_index]["name"]
-            category_description = categories[category_index]["description"]
-            current_timestamp = datetime.datetime.now().isoformat()
-
-            record = {
-                "qa_item": qa_item,
-                "prompt_variant": formatted_prompt,
-                "category_name": category_name,
-                "category_description": category_description,
-                "timestamp": current_timestamp,
-                "model_name": MODEL_NAME,
-                "raw_llm_response_json": response_pydantic_model.model_dump_json(),
+        for idx, category in enumerate(categories, start=1):
+            category_name = category["name"]
+            category_description = category["description"]
+            category_prompt = str(prompt)
+            replacements = {
+                "{category}": category_name,
+                "{category_name}": category_name,
+                "{category_description}": category_description,
+                "{items_per_category}": str(items_per_category),
+                "{items_qty}": str(items_per_category),
+                "{categories}": f"{idx}. {category_name}: {category_description}",
             }
-            all_generated_qa_records.append(record)
+            for placeholder, value in replacements.items():
+                category_prompt = category_prompt.replace(placeholder, value)
 
-            print(f"  Pair {i + 1}:")
-            print(f"    Question: {qa_item.question}")
-            print(f"    Answer: {qa_item.answer[:200]}...")
-            print(f"    Dining Scenario: {qa_item.dining_scenario}")
-            print(f"    Menu Items: {', '.join(qa_item.menu_items)}")
-            print(f"    Service Steps: {', '.join(qa_item.service_steps)}")
-            print(f"    Safety Info: {qa_item.safety_info[:100]}...")
-            print(f"    Tips: {', '.join(qa_item.tips)}")
-            print(f"    --- Metadata ---")
-            print(f"    Timestamp: {current_timestamp}")
-            print(f"    Model Name: {MODEL_NAME}")
-            print(f"    Category: {category_name}")
-            print(f"    Raw LLM Response (snippet): {record['raw_llm_response_json'][:100]}...")
-            print(f"    Prompt Variant (full string stored, hash for display): {hash(formatted_prompt)}")
-            print("\n")
+            print(f"Category {idx}/{len(categories)}: {category_name}")
+            print(f"Generating {items_per_category} Q&A pairs for this category...\n")
+
+            response_pydantic_model = patched_client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant that generates synthetic Q&A pairs for restaurant customer-waiter interactions based on a given schema.",
+                    },
+                    {"role": "user", "content": category_prompt},
+                ],
+                response_model=QADataset,
+                max_retries=3,
+            )
+
+            for qa_index, qa_item in enumerate(response_pydantic_model.qa_pairs, start=1):
+                current_timestamp = datetime.datetime.now().isoformat()
+                record = {
+                    "qa_item": qa_item,
+                    "prompt_variant": category_prompt,
+                    "category_name": category_name,
+                    "category_description": category_description,
+                    "timestamp": current_timestamp,
+                    "model_name": MODEL_NAME,
+                    "raw_llm_response_json": response_pydantic_model.model_dump_json(),
+                }
+                all_generated_qa_records.append(record)
+
+                print(f"  Pair {len(all_generated_qa_records)}:")
+                print(f"    Question: {qa_item.question}")
+                print(f"    Answer: {qa_item.answer[:200]}...")
+                print(f"    Dining Scenario: {qa_item.dining_scenario}")
+                print(f"    Menu Items: {', '.join(qa_item.menu_items)}")
+                print(f"    Service Steps: {', '.join(qa_item.service_steps)}")
+                print(f"    Safety Info: {qa_item.safety_info[:100]}...")
+                print(f"    Tips: {', '.join(qa_item.tips)}")
+                print(f"    --- Metadata ---")
+                print(f"    Timestamp: {current_timestamp}")
+                print(f"    Model Name: {MODEL_NAME}")
+                print(f"    Category: {category_name}")
+                print(f"    Raw LLM Response (snippet): {record['raw_llm_response_json'][:100]}...")
+                print(f"    Prompt Variant (full string stored, hash for display): {hash(category_prompt)}")
+                print("\n")
+
+            save_generated_qa_json(all_generated_qa_records, output_path=str(output_file))
 
         print(f"\nTotal generated Q&A records across all categories: {len(all_generated_qa_records)}")
         save_generated_qa_json(all_generated_qa_records, output_path=str(output_file))
         return all_generated_qa_records
 
     except Exception as e:
-        print(f"❌ Error generating Q&A pairs in one shot: {e}")
+        print(f"❌ Error generating Q&A pairs for category: {e}")
         return []
