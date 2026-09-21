@@ -12,7 +12,7 @@ from step3_human_labeling import run_human_labeling
 from step4_llm_as_judge import run_llm_judge
 from step5_analysis_visualization import run_step5_analysis
 
-items_per_category = 3
+items_per_category = 10
 
 run_startup_checks()
 
