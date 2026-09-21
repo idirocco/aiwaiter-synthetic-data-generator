@@ -4,3 +4,4 @@ instructor
 pydantic
 matplotlib
 seaborn
+pytest
