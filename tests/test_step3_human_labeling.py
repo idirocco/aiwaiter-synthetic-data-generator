@@ -1,4 +1,5 @@
 from step3_human_labeling import run_human_labeling
+from step4_llm_as_judge import build_judge_prompt
 
 
 class FakeQAItem:
@@ -30,18 +31,30 @@ def test_run_human_labeling_defaults_to_yes_on_blank_input(monkeypatch):
 
     assert len(result) == 1
     assert result[0]["human_labels"] == {
-        "accuracy": True,
-        "safety": True,
-        "helpfulness": True,
-        "clarity": True,
-        "completeness": True,
-        "tone": True,
+        "answer_completeness": True,
+        "safety_specificity": True,
+        "menu_realism": True,
+        "scope_appropriateness": True,
+        "context_clarity": True,
+        "tip_usefulness": True,
     }
     assert captured["records"][0]["human_labels"] == {
-        "accuracy": True,
-        "safety": True,
-        "helpfulness": True,
-        "clarity": True,
-        "completeness": True,
-        "tone": True,
+        "answer_completeness": True,
+        "safety_specificity": True,
+        "menu_realism": True,
+        "scope_appropriateness": True,
+        "context_clarity": True,
+        "tip_usefulness": True,
     }
+
+
+def test_build_judge_prompt_includes_rubric_examples_and_human_priority():
+    qa_item = FakeQAItem()
+    prompt = build_judge_prompt(qa_item)
+
+    assert "answer_completeness" in prompt
+    assert "Pass criteria" in prompt
+    assert "Fail examples" in prompt
+    assert "Step 3 human labels are the priority reference" in prompt
+    assert "ambiguous or partially correct" in prompt
+    assert "allergy" in prompt.lower()
