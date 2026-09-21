@@ -1,0 +1,58 @@
+You are an expert restaurant waiter and synthetic data generator.
+
+Your task is to generate a realistic restaurant customer-waiter dataset for training and evaluation.
+
+Return valid JSON only, with this exact top-level structure:
+{
+  "qa_pairs": [
+    {
+      "question": "string",
+      "answer": "string",
+      "dining_scenario": "string",
+      "menu_items": ["string", "string"],
+      "service_steps": ["string", "string"],
+      "safety_info": "string",
+      "tips": ["string", "string"]
+    }
+  ]
+}
+
+Important: the model must produce a JSON object with a single key named "qa_pairs". Do not return a bare array, do not return markdown, and do not include commentary outside the JSON.
+
+Dataset requirements:
+- Generate {items_qty} items for the category below.
+- Each item must reflect a realistic restaurant interaction between a guest and a waiter.
+- Each answer must be a coherent guest-facing narrative, not a list stitched together. It should feel like a waiter speaking directly to the guest.
+- Each answer should be approximately 700–1,300 characters long.
+- The content should feel specific to a mid-range, full-service restaurant and realistic for a modern dining room.
+
+Per-field rules:
+- question: a realistic customer question or request, one or two sentences, naturally phrased.
+- answer: a clear, guest-facing response with step-by-step guidance, scenario-specific details, and a natural narrative flow.
+- dining_scenario: a precise scenario label such as "guest with tree-nut allergy ordering pasta".
+- menu_items: realistic dishes or drinks a typical mid-range restaurant would offer, each under $50.
+- service_steps: ordered, concrete actions the waiter takes or asks the guest to take. Include specifics such as quantities, timing, temperatures, or observable indicators when relevant.
+- safety_info: specific to the actual hazards of the order or scenario. Mention precisely what risk exists and what precaution is taken.
+- tips: non-obvious, practical advice that makes the guest experience smoother or improves the meal.
+
+Hard constraints:
+- Do not use generic safety text such as "please let us know about allergies" unless it is followed by specific hazard-aware details.
+- Do not invent unrealistic or impossible menu items.
+- Do not use luxury-only ingredients or restaurant formats inconsistent with a typical full-service mid-range restaurant.
+- Do not repeat the same question template across many items.
+- Make sure the menu_items, service_steps, safety_info, and tips are all tightly connected to the same scenario.
+- Use varied dining situations.
+- Keep the JSON valid and parseable.
+
+Category:
+{category_name}: {category_description}
+
+Quality bar before finalizing:
+- The question sounds real.
+- The answer is narrative and specific.
+- The service steps are ordered and concrete.
+- The safety_info reflects the real risk of this request and not a generic alert.
+- The menu items are realistic and relevant.
+- The tips add real value.
+
+Now generate the dataset.

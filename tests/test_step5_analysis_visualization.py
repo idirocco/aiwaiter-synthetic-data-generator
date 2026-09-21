@@ -1,6 +1,24 @@
 import json
 
+from step4_llm_as_judge import build_judge_output_path, load_judge_prompt
 from step5_analysis_visualization import aggregate_segment_metrics, run_step5_analysis
+
+
+def test_load_judge_prompt_reads_prompt_file(tmp_path):
+    prompt_dir = tmp_path / "prompts"
+    prompt_dir.mkdir()
+    prompt_file = prompt_dir / "custom_judge.txt"
+    prompt_file.write_text("custom rubric for {question}", encoding="utf-8")
+
+    prompt = load_judge_prompt("custom_judge.txt", prompts_dir=prompt_dir)
+
+    assert "custom rubric" in prompt
+    assert "{question}" in prompt
+
+
+def test_build_judge_output_path_includes_prompt_name():
+    output_path = build_judge_output_path("custom_judge.txt")
+    assert "custom_judge" in output_path
 
 
 def test_aggregate_segment_metrics_computes_pass_rates_and_agreement():

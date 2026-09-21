@@ -17,7 +17,7 @@ items_per_category = 10
 run_startup_checks()
 
 
-def main(step: str | None = None):
+def main(step: str | None = None, step1_prompt_name: str | None = None, step4_prompt_name: str | None = None):
     client = get_client()
     print_startup_banner()
     print_modules_loaded()
@@ -29,8 +29,9 @@ def main(step: str | None = None):
             client=client,
             MODEL_NAME=MODEL_NAME,
             categories=CATEGORIES,
-            prompt=PROMPT,
+            prompt=PROMPT if step1_prompt_name is None else None,
             items_per_category=items_per_category,
+            prompt_name=step1_prompt_name,
         )
 
     try:
@@ -44,9 +45,10 @@ def main(step: str | None = None):
                     client=client,
                     MODEL_NAME=MODEL_NAME,
                     categories=CATEGORIES,
-                    prompt=PROMPT,
+                    prompt=PROMPT if step1_prompt_name is None else None,
                     items_per_category=items_per_category,
                     force_regenerate=True,
+                    prompt_name=step1_prompt_name,
                 )
                 all_generated_qa_records = load_step1_records()
             else:
@@ -59,9 +61,10 @@ def main(step: str | None = None):
                 client=client,
                 MODEL_NAME=MODEL_NAME,
                 categories=CATEGORIES,
-                prompt=PROMPT,
+                prompt=PROMPT if step1_prompt_name is None else None,
                 items_per_category=items_per_category,
                 force_regenerate=True,
+                prompt_name=step1_prompt_name,
             )
             all_generated_qa_records = load_step1_records()
         else:
@@ -74,17 +77,19 @@ def main(step: str | None = None):
         return run_human_labeling(all_generated_qa_records)
 
     if step_name == "step4":
-        return run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME)
-
-    if step_name == "step5":
-        return run_step5_analysis()
+        return run_llm_judge(
+            all_generated_qa_records,
+            client=client,
+            model_name=MODEL_NAME,
+            prompt_name=step4_prompt_name,
+        )
 
     if step_name not in {"all", ""}:
         raise ValueError(f"Unsupported pipeline step: {step!r}")
 
     all_generated_qa_records = validate_step2(all_generated_qa_records)
     run_human_labeling(all_generated_qa_records)
-    run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME)
+    run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME, prompt_name=step4_prompt_name)
     return run_step5_analysis()
 
 
@@ -92,4 +97,6 @@ if __name__ == "__main__":
     import sys
 
     requested_step = sys.argv[1] if len(sys.argv) > 1 else None
-    main(step=requested_step)
+    step1_prompt_name = sys.argv[2] if len(sys.argv) > 2 else None
+    step4_prompt_name = sys.argv[3] if len(sys.argv) > 3 else None
+    main(step=requested_step, step1_prompt_name=step1_prompt_name, step4_prompt_name=step4_prompt_name)

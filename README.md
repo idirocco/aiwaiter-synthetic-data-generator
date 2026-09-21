@@ -84,6 +84,27 @@ python3 pipeline.py step4
 python3 pipeline.py step5
 ```
 
+Use custom prompt files by passing the prompt name as a positional argument. The pipeline expects arguments in this order:
+
+```bash
+python3 pipeline.py <step> [step1_prompt_name] [step4_prompt_name]
+```
+
+Examples:
+
+```bash
+# Step 1 with a custom generator prompt
+python3 pipeline.py step1 my_custom_prompt
+
+# Step 4 with a custom judge prompt
+python3 pipeline.py step4 "" my_custom_judge_prompt
+
+# Step 1 + Step 4 together with custom prompts
+python3 pipeline.py all my_custom_prompt my_custom_judge_prompt
+```
+
+Prompt names are resolved from the prompt folders under `prompts/step1_generator/` and `prompts/step4_judge/`. The `.txt` extension is optional; for example, `my_custom_prompt` resolves to `my_custom_prompt.txt`.
+
 Note: Step 1 asks for confirmation before regenerating an existing `output/step1_generated_qa.json` file.
 
 ## Project structure

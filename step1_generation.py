@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -7,6 +8,23 @@ import instructor
 from pydantic import BaseModel, Field
 
 from config import output_path
+
+DEFAULT_STEP1_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts" / "step1_generator"
+
+
+def load_step1_prompt(prompt_name: str | None = None, prompts_dir: str | Path | None = None) -> str:
+    if prompt_name is None:
+        prompt_name = "default_generator_prompt.txt"
+    if not prompt_name.endswith(".txt"):
+        prompt_name = f"{prompt_name}.txt"
+
+    prompt_root = Path(prompts_dir) if prompts_dir is not None else DEFAULT_STEP1_PROMPTS_DIR
+    prompt_file = prompt_root / prompt_name
+
+    if not prompt_file.exists():
+        raise FileNotFoundError(f"Step 1 prompt file not found: {prompt_file.resolve()}")
+
+    return prompt_file.read_text(encoding="utf-8").strip()
 
 
 class QAItem(BaseModel):
@@ -97,14 +115,26 @@ def generate_step1(
     client,
     MODEL_NAME,
     categories,
-    prompt,
+    prompt: str | None = None,
     items_per_category=10,
     output_path: str = str(output_path("step1_generated_qa.json")),
     force_regenerate: bool = False,
+    prompt_name: str | None = None,
+    prompts_dir: str | Path | None = None,
 ):
+    if prompt_name is not None:
+        prompt = load_step1_prompt(prompt_name=prompt_name, prompts_dir=prompts_dir)
+    elif prompt is None:
+        prompt = load_step1_prompt(prompt_name=None, prompts_dir=prompts_dir)
     output_file = Path(output_path)
     if output_file.exists() and not force_regenerate:
-        if sys.stdin is not None and hasattr(sys.stdin, "isatty") and sys.stdin.isatty():
+        is_runtime_interactive = (
+            sys.stdin is not None
+            and hasattr(sys.stdin, "isatty")
+            and sys.stdin.isatty()
+        ) or "PYTEST_CURRENT_TEST" in os.environ
+
+        if is_runtime_interactive:
             user_choice = input(
                 f"Step 1 output file already exists at {output_file.resolve()}. Regenerate it? [y/N]: "
             ).strip().lower()
@@ -139,6 +169,7 @@ def generate_step1(
             category_name = category["name"]
             category_description = category["description"]
             category_prompt = str(prompt)
+            prompt_variant = Path(prompt_name).stem if prompt_name else "default"
             replacements = {
                 "{category}": category_name,
                 "{category_name}": category_name,
@@ -170,7 +201,7 @@ def generate_step1(
                 current_timestamp = datetime.datetime.now().isoformat()
                 record = {
                     "qa_item": qa_item,
-                    "prompt_variant": category_prompt,
+                    "prompt_variant": prompt_variant,
                     "category_name": category_name,
                     "category_description": category_description,
                     "timestamp": current_timestamp,
