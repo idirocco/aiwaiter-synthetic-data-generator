@@ -213,6 +213,14 @@ def build_segment_heatmap(records: Iterable[dict[str, Any]], group_key: str = "c
     return segments, QUALITY_DIMENSIONS, matrix
 
 
+def save_segment_metrics_to_json(summary: dict[str, Any], output_path: str | Path = OUTPUT_DIR / "step5_segment_metrics.json") -> Path:
+    file_path = Path(output_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+    print(f"Saved segment-level metrics to: {file_path.resolve()}")
+    return file_path
+
+
 def plot_dimension_bar_chart(overall_metrics: dict[str, dict[str, float]], title: str, output_path: Path) -> None:
     if plt is None:
         return
@@ -379,8 +387,10 @@ def generate_step5_visualizations(records: Iterable[dict[str, Any]], output_dir:
     record_list = list(records)
     overall_metrics = compute_overall_metrics(record_list)
     summary = aggregate_segment_metrics(record_list, group_key="category_name")
+    metrics_path = save_segment_metrics_to_json(summary, output_dir / "step5_segment_metrics.json")
 
     saved_paths = {
+        "segment_metrics": metrics_path,
         "segment_heatmap": output_dir / "step5_segment_heatmap.png",
         "dimension_pass_rates": output_dir / "step5_dimension_pass_rates.png",
         "agreement_by_dimension": output_dir / "step5_human_llm_agreement.png",
