@@ -12,6 +12,7 @@ from step3_human_labeling import run_human_labeling
 from step4_llm_as_judge import run_llm_judge
 from step5_analysis_visualization import run_step5_analysis
 
+items_per_category = 3
 
 run_startup_checks()
 
@@ -29,7 +30,7 @@ def main(step: str | None = None):
             MODEL_NAME=MODEL_NAME,
             categories=CATEGORIES,
             prompt=PROMPT,
-            items_per_category=3,
+            items_per_category=items_per_category,
         )
 
     try:
@@ -44,7 +45,7 @@ def main(step: str | None = None):
                     MODEL_NAME=MODEL_NAME,
                     categories=CATEGORIES,
                     prompt=PROMPT,
-                    items_per_category=3,
+                    items_per_category=items_per_category,
                     force_regenerate=True,
                 )
                 all_generated_qa_records = load_step1_records()
@@ -59,7 +60,7 @@ def main(step: str | None = None):
                 MODEL_NAME=MODEL_NAME,
                 categories=CATEGORIES,
                 prompt=PROMPT,
-                items_per_category=3,
+                items_per_category=items_per_category,
                 force_regenerate=True,
             )
             all_generated_qa_records = load_step1_records()

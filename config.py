@@ -49,55 +49,89 @@ CATEGORIES = [
     },
 ]
 
-PROMPT = """Act as an Expert Waiter in a restaurant with many years of experience.
+PROMPT = """You are an expert restaurant waiter and synthetic data generator.
 
-Create a dataset with diverse and high-quality synthetic Q&A pairs to reflect customer - waiter interactions that might happen while the customer orders.
+Your task is to generate a realistic restaurant customer-waiter dataset for training and evaluation.
 
-Each Q&A pair/item must conform to the following 7-field schema:
-| Field | Type | Description |
-|---|---|---|
-| `question` | string | A realistic question or request from a restaurant guest |
-| `answer` | string | A clear, guest-facing response with step-by-step guidance |
-| `dining_scenario` | string | The specific situation being addressed (e.g. \"guest with tree-nut allergy ordering pasta\") |
-| `menu_items` | list of strings | Dishes or drinks a typical mid-range restaurant would realistically offer |
-| `service_steps` | list of strings | Ordered, numbered actions the waiter takes (or walks the guest through) to fulfill the request |
-| `safety_info` | string | Relevant allergen, dietary, food-safety, or alcohol-service warnings and precautions |
-| `tips` | list of strings | Practical insider tips that make the meal better or the request go more smoothly |
-
-Q&A Dataset details:
-- Every item has a substantial, narrative-style answer (typically 700–1,300 characters) that weaves together the menu items, service steps, safety/allergen warnings, and tips into a coherent, guest-facing response, not just a list of fields stitched together
-- Safety information is always specific to the hazards of the particular order or situation (e.g., \"The house pesto is made with walnuts, so I'll flag your ticket as a tree-nut allergy and the kitchen will cook your pasta in a freshly cleaned pan\", not \"Please let us know about any allergies\")
-- Tips provide non-obvious, request-specific advice that a first-time guest would not know
-- Menu items listed are dishes and drinks a typical mid-range, full-service restaurant would realistically offer, each priced under $50
-- Service steps are concrete and specific enough to follow without guessing. They include quantities, timings, or observable indicators where relevant (e.g., \"check back within 2 minutes of the plates landing\", \"medium means a warm pink center, about 140°F / 60°C\")
-
-Generate {items_per_category} items for each of the following categories. The combined dataset should cover all categories evenly and reflect realistic restaurant service scenarios across the entire range:
-{categories}
-
-Example Q&A item:
-`
-{{
-  "question": "I have a severe tree-nut allergy and I'm really craving pasta tonight — what can I safely order?",
-  "answer": "Menu items: Spaghetti Pomodoro, Grilled Chicken Penne with tomato-garlic sauce, Caesar salad without croutons\n\n1. I'll confirm the details of your allergy first — tree nuts only, or peanuts as well — and how severe your reactions usually are\n2. I'll steer you away from the Basil Pesto Linguine and the Tiramisu, since our pesto is made with walnuts and the tiramisu is topped with crushed hazelnuts\n3. I'd recommend the Spaghetti Pomodoro, or the Grilled Chicken Penne served with tomato-garlic sauce instead of pesto\n4. I'll mark your ticket with an ALLERGY flag and tell the chef in person, rather than relying on the ticket alone\n5. I'll bring your plate out separately from the rest of the table's food and confirm it was prepared under our allergy protocol as I set it down\n\nSafety warning: Our pesto contains walnuts and our desserts are made on shared equipment with almonds and hazelnuts, so cross-contact is possible. Your pasta will be cooked in a freshly cleaned pan with clean utensils, but I can't guarantee a completely nut-free kitchen — I'll ask the chef to come to the table and confirm the preparation before you order.\n\nAdditional advice: Our Caesar dressing is made in-house without nuts, but the croutons are baked on the same trays as the almond biscotti — order the salad without croutons to be safe.",
-  "dining_scenario": "Guest with severe tree-nut allergy ordering pasta",
-  "menu_items": [
-    "Spaghetti Pomodoro",
-    "Grilled Chicken Penne with tomato-garlic sauce",
-    "Caesar salad without croutons"
-  ],
-  "service_steps": [
-    "I'll confirm the details of your allergy first — tree nuts only, or peanuts as well — and how severe your reactions usually are",
-    "I'll steer you away from the Basil Pesto Linguine and the Tiramisu, since our pesto is made with walnuts and the tiramisu is topped with crushed hazelnuts",
-    "I'd recommend the Spaghetti Pomodoro, or the Grilled Chicken Penne served with tomato-garlic sauce instead of pesto",
-    "I'll mark your ticket with an ALLERGY flag and tell the chef in person, rather than relying on the ticket alone",
-    "I'll bring your plate out separately from the rest of the table's food and confirm it was prepared under our allergy protocol as I set it down"
-  ],
-  "safety_info": "Our pesto contains walnuts and our desserts are made on shared equipment with almonds and hazelnuts, so cross-contact is possible. Your pasta will be cooked in a freshly cleaned pan with clean utensils, but I can't guarantee a completely nut-free kitchen — I'll ask the chef to come to the table and confirm the preparation before you order.",
-  "tips": [
-    "Our Caesar dressing is made in-house without nuts, but the croutons are baked on the same trays as the almond biscotti — order the salad without croutons to be safe."
+Return valid JSON only, with this exact top-level structure:
+{
+  "qa_pairs": [
+    {
+      "question": "string",
+      "answer": "string",
+      "dining_scenario": "string",
+      "menu_items": ["string", "string"],
+      "service_steps": ["string", "string"],
+      "safety_info": "string",
+      "tips": ["string", "string"]
+    }
   ]
-}}
-`
+}
+
+Important: the model must produce a JSON object with a single key named "qa_pairs". Do not return a bare array, do not return markdown, and do not include commentary outside the JSON.
+
+Dataset requirements:
+- Generate at least {items_qty} total items across the categories below.
+- Distribute them as evenly as possible across categories; if the count is not perfectly divisible, keep the spread as balanced as possible.
+- Each item must reflect a realistic restaurant interaction between a guest and a waiter.
+- Each answer must be a coherent guest-facing narrative, not a list stitched together. It should feel like a waiter speaking directly to the guest.
+- Each answer should be approximately 700–1,300 characters long.
+- The content should feel specific to a mid-range, full-service restaurant and realistic for a modern dining room.
+
+Per-field rules:
+- question: a realistic customer question or request, one or two sentences, naturally phrased.
+- answer: a clear, guest-facing response with step-by-step guidance, scenario-specific details, and a natural narrative flow.
+- dining_scenario: a precise scenario label such as "guest with tree-nut allergy ordering pasta".
+- menu_items: realistic dishes or drinks a typical mid-range restaurant would offer, each under $50.
+- service_steps: ordered, concrete actions the waiter takes or asks the guest to take. Include specifics such as quantities, timing, temperatures, or observable indicators when relevant.
+- safety_info: specific to the actual hazards of the order or scenario. Mention precisely what risk exists and what precaution is taken.
+- tips: non-obvious, practical advice that makes the guest experience smoother or improves the meal.
+
+Hard constraints:
+- Do not use generic safety text such as "please let us know about allergies" unless it is followed by specific hazard-aware details.
+- Do not invent unrealistic or impossible menu items.
+- Do not use luxury-only ingredients or restaurant formats inconsistent with a typical full-service mid-range restaurant.
+- Do not repeat the same question template across many items.
+- Make sure the menu_items, service_steps, safety_info, and tips are all tightly connected to the same scenario.
+- Use varied dining situations.
+- Keep the JSON valid and parseable.
+
+Category: 
+{category_name}: {category_description}
+
+Quality bar before finalizing:
+- The question sounds real.
+- The answer is narrative and specific.
+- The service steps are ordered and concrete.
+- The safety_info reflects the real risk of this request and not a generic alert.
+- The menu items are realistic and relevant.
+- The tips add real value.
+
+Example of the required output format:
+{
+  "qa_pairs": [
+    {
+      "question": "I have a severe tree-nut allergy and I'm really craving pasta tonight — what can I safely order?",
+      "answer": "I'd steer you away from the basil pesto and the tiramisu because the pesto contains walnuts and the dessert is made on shared equipment with hazelnuts. A safer choice would be the Spaghetti Pomodoro or the Grilled Chicken Penne with tomato-garlic sauce, and I'd ask the kitchen to prepare it in a freshly cleaned pan with clean utensils. I'll also flag the ticket as an allergy order and tell the chef in person before the food is started so nothing is missed. Once the plate lands, I'll bring it out separately from the rest of the table and check that it was prepared under our allergy protocol before I leave it with you.",
+      "dining_scenario": "guest with severe tree-nut allergy ordering pasta",
+      "menu_items": ["Spaghetti Pomodoro", "Grilled Chicken Penne with tomato-garlic sauce", "Caesar salad without croutons"],
+      "service_steps": [
+        "Confirm the exact allergen and severity with the guest before recommending a dish.",
+        "Recommend a safe pasta and avoid the pesto and dessert items that contain nuts.",
+        "Flag the order with an allergy note and communicate directly with the chef.",
+        "Ask the kitchen to cook the dish in a freshly cleaned pan with clean utensils.",
+        "Bring the plate out separately and verify it was prepared under the allergy protocol."
+      ],
+      "safety_info": "The house pesto contains walnuts and the tiramisu is prepared on shared equipment with hazelnuts, so cross-contact is a real risk. The kitchen should use a freshly cleaned pan and clean utensils, and the order should be clearly labeled as an allergy request.",
+      "tips": [
+        "Ask whether the guest is allergic to tree nuts only or also to peanuts, since some sauces and desserts can trigger cross-reactions.",
+        "If the guest wants a salad, order it without croutons, since the croutons are baked near almond biscotti in the same prep area."
+      ]
+    }
+  ]
+}
+
+Now generate the dataset.
 """
 
 

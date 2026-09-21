@@ -32,7 +32,7 @@ class FakeCompletions:
         self.calls.append(kwargs)
         return FakeQADataset([
             FakeQAItem(
-                question="How do I order?",
+                question=f"How do I order? ({len(self.calls)})",
                 answer="Let me help.",
                 dining_scenario="Dinner",
                 menu_items=["Pasta"],
@@ -91,4 +91,31 @@ def test_generate_step1_force_regenerate_skips_confirmation(monkeypatch, tmp_pat
     )
 
     assert len(result) == 1
-    assert result[0]["qa_item"].question == "How do I order?"
+    assert result[0]["qa_item"].question == "How do I order? (1)"
+
+
+def test_generate_step1_loops_through_each_category(monkeypatch, tmp_path):
+    output_path = tmp_path / "step1_generated_qa.json"
+    output_path.write_text("[]", encoding="utf-8")
+
+    fake_client = FakePatchedClient()
+
+    monkeypatch.setattr("builtins.input", lambda prompt: pytest.fail("input should not be called when forced"))
+    monkeypatch.setattr("step1_generation.instructor.patch", lambda client: fake_client)
+
+    result = generate_step1(
+        client=object(),
+        MODEL_NAME="test-model",
+        categories=[
+            {"name": "Category A", "description": "Alpha"},
+            {"name": "Category B", "description": "Beta"},
+        ],
+        prompt="Prompt for {category}: {category_description}. {items_per_category} items.",
+        items_per_category=1,
+        force_regenerate=True,
+        output_path=str(output_path),
+    )
+
+    assert len(result) == 2
+    assert len(fake_client.chat.completions.calls) == 2
+    assert [record["category_name"] for record in result] == ["Category A", "Category B"]
