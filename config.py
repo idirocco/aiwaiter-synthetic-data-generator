@@ -71,8 +71,7 @@ Return valid JSON only, with this exact top-level structure:
 Important: the model must produce a JSON object with a single key named "qa_pairs". Do not return a bare array, do not return markdown, and do not include commentary outside the JSON.
 
 Dataset requirements:
-- Generate at least {items_qty} total items across the categories below.
-- Distribute them as evenly as possible across categories; if the count is not perfectly divisible, keep the spread as balanced as possible.
+- Generate {items_qty} items for the category below.
 - Each item must reflect a realistic restaurant interaction between a guest and a waiter.
 - Each answer must be a coherent guest-facing narrative, not a list stitched together. It should feel like a waiter speaking directly to the guest.
 - Each answer should be approximately 700–1,300 characters long.
