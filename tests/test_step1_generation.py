@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from step1_generation import generate_step1
+from step1_generation import generate_step1, load_step1_prompt
 
 
 class FakeQAItem:
@@ -51,6 +51,13 @@ class FakeChat:
 class FakePatchedClient:
     def __init__(self):
         self.chat = FakeChat()
+
+
+def test_load_step1_prompt_defaults_to_generator_prompt_default():
+    prompt_root = Path(__file__).resolve().parent.parent / "prompts" / "step1_generator"
+    expected = (prompt_root / "generator_prompt_default.txt").read_text(encoding="utf-8").strip()
+
+    assert load_step1_prompt() == expected
 
 
 def test_generate_step1_skips_when_existing_file_is_not_regenerated(monkeypatch, tmp_path):

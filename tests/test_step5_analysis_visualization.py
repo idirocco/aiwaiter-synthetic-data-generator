@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from step4_llm_as_judge import build_judge_output_path, load_judge_prompt
 from step5_analysis_visualization import aggregate_segment_metrics, run_step5_analysis
@@ -14,6 +15,13 @@ def test_load_judge_prompt_reads_prompt_file(tmp_path):
 
     assert "custom rubric" in prompt
     assert "{question}" in prompt
+
+
+def test_load_judge_prompt_defaults_to_judge_prompt_default():
+    prompt_root = Path(__file__).resolve().parent.parent / "prompts" / "step4_judge"
+    expected = (prompt_root / "judge_prompt_default.txt").read_text(encoding="utf-8").strip()
+
+    assert load_judge_prompt() == expected
 
 
 def test_build_judge_output_path_includes_prompt_name():
