@@ -116,8 +116,9 @@ Note: Step 1 asks for confirmation before regenerating an existing `output/step1
 - `step3_human_labeling.py` — interactive human review tool and label export
 - `step4_llm_as_judge.py` — LLM-based quality scoring and export
 - `step5_analysis_visualization.py` — merges labels, computes metrics, and writes charts
-- `quality_dimensions.py` — Six quality dimensions used across labeling and judging
+- `quality_dimensions.py` — six quality dimensions used across labeling and judging
 - `startup_checks.py` — dependency and environment validation before pipeline startup
+- `prompts/` — prompt templates for generation and LLM judging (`step1_generator/`, `step4_judge/`)
 - `requirements.txt` — project dependencies
 - `.gitignore` — excludes local environment and generated artifacts
 
