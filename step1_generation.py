@@ -14,7 +14,7 @@ DEFAULT_STEP1_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts" / "step1
 
 def load_step1_prompt(prompt_name: str | None = None, prompts_dir: str | Path | None = None) -> str:
     if prompt_name is None:
-        prompt_name = "default_generator_prompt.txt"
+        prompt_name = "generator_prompt_default.txt"
     if not prompt_name.endswith(".txt"):
         prompt_name = f"{prompt_name}.txt"
 
@@ -169,7 +169,7 @@ def generate_step1(
             category_name = category["name"]
             category_description = category["description"]
             category_prompt = str(prompt)
-            prompt_variant = Path(prompt_name).stem if prompt_name else "default"
+            prompt_variant = Path(prompt_name).stem if prompt_name else "generator_prompt_default"
             replacements = {
                 "{category}": category_name,
                 "{category_name}": category_name,
