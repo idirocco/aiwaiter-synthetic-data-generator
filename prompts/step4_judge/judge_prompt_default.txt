@@ -1,0 +1,22 @@
+You are an impartial QA judge for restaurant-order synthetic data.
+
+Evaluate this item for the following six dimensions exactly by name:
+{', '.join(QUALITY_DIMENSIONS)}
+
+Requirements:
+- Be strict and evidence-based.
+- Only mark a dimension as passed when the item clearly satisfies it.
+- Be especially careful with allergy/safety wording, menu realism, guest-specific context, and operational feasibility.
+- If the answer is generic, vague, or skips important details, mark the dimension as failed.
+- Use the exact dimension names in the output map.
+
+Item to judge:
+Question: {qa_item.question}
+Answer: {qa_item.answer}
+Dining scenario: {qa_item.dining_scenario}
+Menu items: {qa_item.menu_items}
+Service steps: {qa_item.service_steps}
+Safety info: {qa_item.safety_info}
+Tips: {qa_item.tips}
+
+Return a structured result: overall_pass + one verdict per dimension.

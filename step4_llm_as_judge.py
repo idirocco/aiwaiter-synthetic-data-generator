@@ -18,7 +18,7 @@ DEFAULT_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts" / "step4_judge
 
 def load_judge_prompt(prompt_name: str | None = None, prompts_dir: str | Path | None = None) -> str:
     if prompt_name is None:
-        prompt_name = "default_judge_prompt.txt"
+        prompt_name = "judge_prompt_default.txt"
     if not prompt_name.endswith(".txt"):
         prompt_name = f"{prompt_name}.txt"
 
