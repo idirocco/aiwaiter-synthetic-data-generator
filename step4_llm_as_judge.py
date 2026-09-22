@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import instructor
+import openai
 from pydantic import BaseModel, Field
 
 from config import output_path
@@ -50,6 +51,39 @@ class JudgeOutput(BaseModel):
     dimension_scores: dict[str, DimensionVerdict] = Field(
         description="A verdict for each quality dimension using the exact names in QUALITY_DIMENSIONS"
     )
+
+
+def _log_llm_error(context: str, exc: Exception) -> None:
+    error_type = type(exc).__name__
+    print(f"❌ OpenRouter error during {context}: {error_type}: {exc}")
+
+    if isinstance(exc, openai.RateLimitError):
+        print("   The judge model was rate-limited. Please retry later or reduce concurrency.")
+    elif isinstance(exc, openai.APIConnectionError):
+        print("   OpenRouter connection failed while running the judge model.")
+    elif isinstance(exc, openai.APIStatusError):
+        print("   OpenRouter returned an HTTP error while judging the QA item.")
+    elif isinstance(exc, openai.BadRequestError):
+        print("   The judge prompt or model configuration was rejected by OpenRouter.")
+
+
+def _validate_judge_response(response: object, context: str) -> JudgeOutput:
+    if response is None:
+        raise ValueError(f"Malformed response from OpenRouter during {context}: response is None")
+    if not hasattr(response, "overall_pass") or not hasattr(response, "dimension_scores"):
+        raise ValueError(
+            f"Malformed response from OpenRouter during {context}: missing 'overall_pass' or 'dimension_scores'"
+        )
+    if not isinstance(response.dimension_scores, dict):
+        raise TypeError(f"Malformed response from OpenRouter during {context}: 'dimension_scores' must be a dict")
+
+    for dimension_name, verdict in response.dimension_scores.items():
+        if not hasattr(verdict, "pass_") or not hasattr(verdict, "rationale"):
+            raise ValueError(
+                f"Malformed response from OpenRouter during {context}: dimension '{dimension_name}' is missing required fields"
+            )
+
+    return response
 
 
 def build_judge_prompt(qa_item: Any, prompt_name: str | None = None, prompts_dir: str | Path | None = None) -> str:
@@ -130,19 +164,25 @@ def run_llm_judge(
         trace_id = f"qa_{i + 1:03d}"
 
         judge_prompt = build_judge_prompt(qa_item, prompt_name=prompt_name, prompts_dir=prompts_dir)
-        judge_result = patched_client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a strict, evidence-based evaluator for synthetic restaurant QA data. Return only deterministic, structured results.",
-                },
-                {"role": "user", "content": judge_prompt},
-            ],
-            response_model=JudgeOutput,
-            temperature=temperature,
-            max_retries=3,
-        )
+        try:
+            judge_result = patched_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a strict, evidence-based evaluator for synthetic restaurant QA data. Return only deterministic, structured results.",
+                    },
+                    {"role": "user", "content": judge_prompt},
+                ],
+                response_model=JudgeOutput,
+                temperature=temperature,
+                max_retries=3,
+            )
+            judge_result = _validate_judge_response(judge_result, f"judge record '{trace_id}'")
+        except (openai.APIError, openai.OpenAIError, ValueError, TypeError) as exc:
+            _log_llm_error(f"Step 4 judge for track '{trace_id}'", exc)
+            print("Skipping this QA item and continuing with the remaining records.")
+            continue
 
         judged_record = record.copy()
         judged_record["trace_id"] = trace_id

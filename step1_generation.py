@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import instructor
+import openai
 from pydantic import BaseModel, Field
 
 from config import output_path
@@ -39,6 +40,47 @@ class QAItem(BaseModel):
 
 class QADataset(BaseModel):
     qa_pairs: list[QAItem]
+
+
+def _log_llm_error(context: str, exc: Exception) -> None:
+    error_type = type(exc).__name__
+    print(f"❌ OpenRouter error during {context}: {error_type}: {exc}")
+
+    if isinstance(exc, openai.RateLimitError):
+        print("   The model API rate limit was hit. Please retry later or reduce concurrency.")
+    elif isinstance(exc, openai.APIConnectionError):
+        print("   OpenRouter connection failed. Check network connectivity and the API endpoint.")
+    elif isinstance(exc, openai.APIStatusError):
+        print("   OpenRouter returned an HTTP error status instead of a valid response.")
+    elif isinstance(exc, openai.BadRequestError):
+        print("   The request payload or model specification was rejected by OpenRouter.")
+
+
+def _validate_step1_response(response: object, context: str) -> QADataset:
+    if response is None:
+        raise ValueError(f"Malformed response from OpenRouter during {context}: response is None")
+    if not hasattr(response, "qa_pairs"):
+        raise ValueError(f"Malformed response from OpenRouter during {context}: missing 'qa_pairs' field")
+    if not isinstance(response.qa_pairs, list):
+        raise TypeError(f"Malformed response from OpenRouter during {context}: 'qa_pairs' must be a list")
+
+    for idx, qa_item in enumerate(response.qa_pairs, start=1):
+        required_fields = [
+            "question",
+            "answer",
+            "dining_scenario",
+            "menu_items",
+            "service_steps",
+            "safety_info",
+            "tips",
+        ]
+        missing_fields = [field for field in required_fields if not hasattr(qa_item, field)]
+        if missing_fields:
+            raise ValueError(
+                f"Malformed response from OpenRouter during {context}: item {idx} missing fields: {', '.join(missing_fields)}"
+            )
+
+    return response
 
 
 def load_step1_records(input_path: str = str(output_path("step1_generated_qa.json"))):
@@ -184,18 +226,24 @@ def generate_step1(
             print(f"Category {idx}/{len(categories)}: {category_name}")
             print(f"Generating {items_per_category} Q&A pairs for this category...\n")
 
-            response_pydantic_model = patched_client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant that generates synthetic Q&A pairs for restaurant customer-waiter interactions based on a given schema.",
-                    },
-                    {"role": "user", "content": category_prompt},
-                ],
-                response_model=QADataset,
-                max_retries=3,
-            )
+            try:
+                response_pydantic_model = patched_client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a helpful assistant that generates synthetic Q&A pairs for restaurant customer-waiter interactions based on a given schema.",
+                        },
+                        {"role": "user", "content": category_prompt},
+                    ],
+                    response_model=QADataset,
+                    max_retries=3,
+                )
+                response_pydantic_model = _validate_step1_response(response_pydantic_model, f"category '{category_name}'")
+            except (openai.APIError, openai.OpenAIError, ValueError, TypeError) as exc:
+                _log_llm_error(f"Step 1 generation for category '{category_name}'", exc)
+                print("Skipping this category and continuing with the remaining categories.")
+                continue
 
             for qa_index, qa_item in enumerate(response_pydantic_model.qa_pairs, start=1):
                 current_timestamp = datetime.datetime.now().isoformat()
@@ -223,7 +271,7 @@ def generate_step1(
                 print(f"    Model Name: {MODEL_NAME}")
                 print(f"    Category: {category_name}")
                 print(f"    Raw LLM Response (snippet): {record['raw_llm_response_json'][:100]}...")
-                print(f"    Prompt Variant (full string stored, hash for display): {hash(category_prompt)}")
+                print(f"    Prompt Variant: {prompt_variant}")
                 print("\n")
 
             save_generated_qa_json(all_generated_qa_records, output_path=str(output_file))
@@ -233,5 +281,5 @@ def generate_step1(
         return all_generated_qa_records
 
     except Exception as e:
-        print(f"❌ Error generating Q&A pairs for category: {e}")
+        print(f"❌ Error generating Q&A pairs pipeline: {e}")
         return []

@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import openai
 import pytest
 
 from step1_generation import generate_step1, load_step1_prompt
+from step4_llm_as_judge import run_llm_judge
 
 
 class FakeQAItem:
@@ -99,6 +101,74 @@ def test_generate_step1_force_regenerate_skips_confirmation(monkeypatch, tmp_pat
 
     assert len(result) == 1
     assert result[0]["qa_item"].question == "How do I order? (1)"
+
+
+def test_generate_step1_handles_rate_limit_error(monkeypatch, tmp_path):
+    output_path = tmp_path / "step1_generated_qa.json"
+    output_path.write_text("[]", encoding="utf-8")
+
+    class RateLimitedCompletions:
+        def create(self, **kwargs):
+            raise openai.RateLimitError("rate limit reached", response=None, body=None)
+
+    class RateLimitedClient:
+        def __init__(self):
+            self.chat = type("Chat", (), {"completions": RateLimitedCompletions()})()
+
+    monkeypatch.setattr("builtins.input", lambda prompt: pytest.fail("input should not be called when forced"))
+    monkeypatch.setattr("step1_generation.instructor.patch", lambda client: RateLimitedClient())
+
+    result = generate_step1(
+        client=object(),
+        MODEL_NAME="test-model",
+        categories=[{"name": "Test Category", "description": "Test description"}],
+        prompt="Prompt {category} {items_per_category}",
+        items_per_category=1,
+        force_regenerate=True,
+        output_path=str(output_path),
+    )
+
+    assert result == []
+
+
+def test_run_llm_judge_handles_malformed_response(monkeypatch, tmp_path):
+    class MalformedResponse:
+        pass
+
+    class MalformedCompletions:
+        def create(self, **kwargs):
+            return MalformedResponse()
+
+    class MalformedClient:
+        def __init__(self):
+            self.chat = type("Chat", (), {"completions": MalformedCompletions()})()
+
+    fake_record = {
+        "qa_item": type(
+            "QAItem",
+            (),
+            {
+                "question": "Any gluten-free options?",
+                "answer": "Yes, we can help.",
+                "dining_scenario": "Gluten-free allergy",
+                "menu_items": ["Burger"],
+                "service_steps": ["Confirm", "Prepare", "Serve"],
+                "safety_info": "Cross-contact risk.",
+                "tips": ["Ask about contamination."],
+            },
+        )(),
+    }
+
+    monkeypatch.setattr("step4_llm_as_judge.instructor.patch", lambda client: MalformedClient())
+
+    result = run_llm_judge(
+        all_generated_qa_records=[fake_record],
+        client=object(),
+        model_name="test-model",
+        output_path=str(tmp_path / "judge_output.json"),
+    )
+
+    assert result == []
 
 
 def test_generate_step1_loops_through_each_category(monkeypatch, tmp_path):
