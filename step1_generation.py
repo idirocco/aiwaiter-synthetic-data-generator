@@ -28,6 +28,15 @@ def load_step1_prompt(prompt_name: str | None = None, prompts_dir: str | Path | 
     return prompt_file.read_text(encoding="utf-8").strip()
 
 
+def generator_prompt_slug(prompt_name: str | None = None) -> str:
+    raw_name = prompt_name or "generator_prompt_default"
+    return Path(raw_name).stem.replace(" ", "_")
+
+
+def build_step1_output_path(prompt_name: str | None = None) -> str:
+    return str(output_path(f"step1_generated_qa_{generator_prompt_slug(prompt_name)}.json"))
+
+
 class QAItem(BaseModel):
     question: str = Field(min_length=1, description="A realistic question or request from a restaurant guest")
     answer: str = Field(min_length=1, description="A clear, guest-facing response with step-by-step guidance")
@@ -83,7 +92,9 @@ def _validate_step1_response(response: object, context: str) -> QADataset:
     return response
 
 
-def load_step1_records(input_path: str = str(output_path("step1_generated_qa.json"))):
+def load_step1_records(input_path: str | None = None, prompt_name: str | None = None):
+    if input_path is None:
+        input_path = build_step1_output_path(prompt_name)
     input_file = Path(input_path)
     if not input_file.exists():
         raise FileNotFoundError(f"Step 1 output file not found: {input_file.resolve()}")
@@ -121,7 +132,9 @@ def load_step1_records(input_path: str = str(output_path("step1_generated_qa.jso
     return loaded_records
 
 
-def save_generated_qa_json(all_generated_qa_records, output_path: str = str(output_path("step1_generated_qa.json"))):
+def save_generated_qa_json(all_generated_qa_records, output_path: str | None = None, prompt_name: str | None = None):
+    if output_path is None:
+        output_path = build_step1_output_path(prompt_name)
     output_records = []
     for record in all_generated_qa_records:
         qa_item = record["qa_item"]
@@ -159,7 +172,7 @@ def generate_step1(
     categories,
     prompt: str | None = None,
     items_per_category=10,
-    output_path: str = str(output_path("step1_generated_qa.json")),
+    output_path: str | None = None,
     force_regenerate: bool = False,
     prompt_name: str | None = None,
     prompts_dir: str | Path | None = None,
@@ -168,6 +181,8 @@ def generate_step1(
         prompt = load_step1_prompt(prompt_name=prompt_name, prompts_dir=prompts_dir)
     elif prompt is None:
         prompt = load_step1_prompt(prompt_name=None, prompts_dir=prompts_dir)
+    if output_path is None:
+        output_path = build_step1_output_path(prompt_name)
     output_file = Path(output_path)
     if output_file.exists() and not force_regenerate:
         is_runtime_interactive = (

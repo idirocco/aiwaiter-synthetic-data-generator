@@ -3,7 +3,6 @@
 # structured Instructor/Pydantic schema and a lower temperature for deterministic scoring.
 
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from config import output_path
 from quality_dimensions import QUALITY_DIMENSIONS
+from step1_generation import build_step1_output_path, generator_prompt_slug, load_step1_records
 
 DEFAULT_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts" / "step4_judge"
 
@@ -31,6 +31,10 @@ def load_judge_prompt(prompt_name: str | None = None, prompts_dir: str | Path | 
 
     template = prompt_file.read_text(encoding="utf-8").strip()
     return template
+
+
+def build_step4_output_path(generator_prompt: str | None = None) -> str:
+    return str(output_path(f"step4_llm_judge_labels_{generator_prompt_slug(generator_prompt)}.json"))
 
 
 def build_judge_output_path(prompt_name: str | None = None, prefix: str = "step4_llm_judge_labels") -> str:
@@ -101,18 +105,13 @@ def build_judge_prompt(qa_item: Any, prompt_name: str | None = None, prompts_dir
     return template.format(**prompt_data)
 
 
-def timestamped_output_path(prefix: str = "step4_llm_judge_labels", prompt_name: str | None = None) -> str:
-    timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-    if prompt_name:
-        prompt_slug = Path(prompt_name).stem
-        return str(output_path(f"{prefix}_{prompt_slug}.json"))
-    return str(output_path(f"{prefix}.json"))
-    #return str(output_path(f"{prefix}_{timestamp}.json"))
-
-
-def save_judge_results_to_json(judged_records, output_path: str | None = None):
+def save_judge_results_to_json(
+    judged_records,
+    output_path: str | None = None,
+    generator_prompt: str | None = None,
+):
     if output_path is None:
-        output_path = timestamped_output_path()
+        output_path = build_step4_output_path(generator_prompt)
 
     output_records = []
     for idx, record in enumerate(judged_records):
@@ -139,16 +138,21 @@ def save_judge_results_to_json(judged_records, output_path: str | None = None):
 
 
 def run_llm_judge(
-    all_generated_qa_records,
     client,
     model_name: str,
+    generator_prompt: str | None = None,
+    input_path: str | None = None,
     temperature: float = 0.1,
     output_path: str | None = None,
     prompt_name: str | None = None,
     prompts_dir: str | Path | None = None,
 ):
+    resolved_path = input_path or build_step1_output_path(generator_prompt)
+    print(f"\n--- Loading Step 1 records from {resolved_path} ---")
+    all_generated_qa_records = load_step1_records(input_path=resolved_path)
+
     if output_path is None:
-        output_path = timestamped_output_path(prompt_name=prompt_name)
+        output_path = build_step4_output_path(generator_prompt)
     patched_client = instructor.patch(client)
 
     judged_records = []

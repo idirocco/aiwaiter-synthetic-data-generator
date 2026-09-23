@@ -1,6 +1,8 @@
 import re
 from collections import defaultdict
 
+from step1_generation import build_step1_output_path, load_step1_records
+
 MIN_SAFETY_INFO_LENGTH = 30
 GENERIC_PHRASE_BLOCKLIST = [
     "please let us know about any allergies",
@@ -40,7 +42,11 @@ def normalize_question(question):
     return re.sub(r"[^a-zA-Z0-9]", "", question).lower()
 
 
-def validate_step2(all_generated_qa_records):
+def validate_step2(generator_prompt: str | None = None, input_path: str | None = None):
+    resolved_path = input_path or build_step1_output_path(generator_prompt)
+    print(f"\n--- Loading Step 1 records from {resolved_path} ---")
+    all_generated_qa_records = load_step1_records(input_path=resolved_path)
+
     print("\n--- Running Per-Item Lightweight Pre-Checks ---")
 
     passed_per_item_checks = []

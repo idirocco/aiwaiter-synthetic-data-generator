@@ -7,9 +7,20 @@ from pathlib import Path
 
 from config import output_path
 from quality_dimensions import QUALITY_DIMENSIONS
+from step1_generation import build_step1_output_path, generator_prompt_slug, load_step1_records
 
 
-def save_human_labels_to_json(labeled_records, output_path: str = str(output_path("step3_human_labels.json"))):
+def build_step3_output_path(generator_prompt: str | None = None) -> str:
+    return str(output_path(f"step3_human_labels_{generator_prompt_slug(generator_prompt)}.json"))
+
+
+def save_human_labels_to_json(
+    labeled_records,
+    output_path: str | None = None,
+    generator_prompt: str | None = None,
+):
+    if output_path is None:
+        output_path = build_step3_output_path(generator_prompt)
     output_records = []
 
     for idx, record in enumerate(labeled_records):
@@ -34,7 +45,11 @@ def save_human_labels_to_json(labeled_records, output_path: str = str(output_pat
     return str(output_file)
 
 
-def run_human_labeling(all_generated_qa_records):
+def run_human_labeling(generator_prompt: str | None = None, input_path: str | None = None):
+    resolved_path = input_path or build_step1_output_path(generator_prompt)
+    print(f"\n--- Loading Step 1 records from {resolved_path} ---")
+    all_generated_qa_records = load_step1_records(input_path=resolved_path)
+
     print("\n--- Starting Interactive Human Labeling (Step 3) ---")
 
     human_labeled_records = []
@@ -84,7 +99,7 @@ def run_human_labeling(all_generated_qa_records):
         labeled_record["human_labels"] = human_labels
         human_labeled_records.append(labeled_record)
 
-    save_human_labels_to_json(human_labeled_records)
+    save_human_labels_to_json(human_labeled_records, generator_prompt=generator_prompt)
 
     print("\n--- Interactive Human Labeling Completed ---")
     print(f"Total human-labeled records: {len(human_labeled_records)}")

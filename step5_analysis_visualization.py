@@ -70,8 +70,8 @@ def _safe_label_map(record: dict[str, Any], labels_key: str) -> dict[str, int]:
 
 def merge_step_outputs(
     generated_path: str | Path = OUTPUT_DIR / "step1_generated_qa.json",
-    human_path: str | Path = OUTPUT_DIR / "step3_human_labels.json",
-    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels.json",
+    human_path: str | Path = OUTPUT_DIR / "step3_human_labels_generator_prompt_default.json",
+    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels_generator_prompt_default.json",
 ) -> list[dict[str, Any]]:
     generated_records = _read_json(generated_path)
     human_records = {r.get("trace_id"): r for r in _read_json(human_path) if r.get("trace_id")}
@@ -410,8 +410,8 @@ def generate_step5_visualizations(records: Iterable[dict[str, Any]], output_dir:
 
 def run_step5_analysis(
     generated_path: str | Path = OUTPUT_DIR / "step1_generated_qa.json",
-    human_path: str | Path = OUTPUT_DIR / "step3_human_labels.json",
-    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels.json",
+    human_path: str | Path = OUTPUT_DIR / "step3_human_labels_generator_prompt_default.json",
+    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels_generator_prompt_default.json",
     output_dir: str | Path = VISUALIZATION_DIR,
 ) -> dict[str, Any]:
     merged_records = merge_step_outputs(generated_path=generated_path, human_path=human_path, llm_path=llm_path)

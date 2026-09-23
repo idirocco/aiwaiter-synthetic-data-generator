@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from step4_llm_as_judge import build_judge_output_path, load_judge_prompt
+from step4_llm_as_judge import build_judge_output_path, build_step4_output_path, load_judge_prompt
 from step5_analysis_visualization import aggregate_segment_metrics, run_step5_analysis
 
 
@@ -22,6 +22,14 @@ def test_load_judge_prompt_defaults_to_judge_prompt_default():
     expected = (prompt_root / "judge_prompt_default.txt").read_text(encoding="utf-8").strip()
 
     assert load_judge_prompt() == expected
+
+
+def test_build_step4_output_path_includes_generator_prompt():
+    custom_path = build_step4_output_path("my_custom_prompt.txt")
+    default_path = build_step4_output_path()
+
+    assert custom_path.endswith("step4_llm_judge_labels_my_custom_prompt.json")
+    assert default_path.endswith("step4_llm_judge_labels_generator_prompt_default.json")
 
 
 def test_build_judge_output_path_includes_prompt_name():

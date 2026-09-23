@@ -1,9 +1,10 @@
+import json
 from pathlib import Path
 
 import openai
 import pytest
 
-from step1_generation import generate_step1, load_step1_prompt
+from step1_generation import build_step1_output_path, generate_step1, load_step1_prompt
 from step4_llm_as_judge import run_llm_judge
 
 
@@ -60,6 +61,35 @@ def test_load_step1_prompt_defaults_to_generator_prompt_default():
     expected = (prompt_root / "generator_prompt_default.txt").read_text(encoding="utf-8").strip()
 
     assert load_step1_prompt() == expected
+
+
+def test_build_step1_output_path_includes_generator_prompt():
+    custom_path = build_step1_output_path("my_custom_prompt.txt")
+    default_path = build_step1_output_path()
+
+    assert custom_path.endswith("step1_generated_qa_my_custom_prompt.json")
+    assert default_path.endswith("step1_generated_qa_generator_prompt_default.json")
+
+
+def test_generate_step1_names_output_after_generator_prompt(monkeypatch, tmp_path):
+    prompt_dir = tmp_path / "prompts"
+    prompt_dir.mkdir()
+    (prompt_dir / "custom_generator.txt").write_text("Prompt {category}", encoding="utf-8")
+
+    monkeypatch.setattr("step1_generation.output_path", lambda filename: tmp_path / filename)
+    monkeypatch.setattr("step1_generation.instructor.patch", lambda client: FakePatchedClient())
+
+    generate_step1(
+        client=object(),
+        MODEL_NAME="test-model",
+        categories=[{"name": "Test Category", "description": "Test description"}],
+        items_per_category=1,
+        force_regenerate=True,
+        prompt_name="custom_generator",
+        prompts_dir=prompt_dir,
+    )
+
+    assert (tmp_path / "step1_generated_qa_custom_generator.json").exists()
 
 
 def test_generate_step1_skips_when_existing_file_is_not_regenerated(monkeypatch, tmp_path):
@@ -143,28 +173,31 @@ def test_run_llm_judge_handles_malformed_response(monkeypatch, tmp_path):
         def __init__(self):
             self.chat = type("Chat", (), {"completions": MalformedCompletions()})()
 
-    fake_record = {
-        "qa_item": type(
-            "QAItem",
-            (),
-            {
-                "question": "Any gluten-free options?",
-                "answer": "Yes, we can help.",
-                "dining_scenario": "Gluten-free allergy",
-                "menu_items": ["Burger"],
-                "service_steps": ["Confirm", "Prepare", "Serve"],
-                "safety_info": "Cross-contact risk.",
-                "tips": ["Ask about contamination."],
-            },
-        )(),
-    }
+    step1_file = tmp_path / "step1_generated_qa.json"
+    step1_file.write_text(
+        json.dumps(
+            [
+                {
+                    "metadata": {"category_name": "Test"},
+                    "question": "Any gluten-free options?",
+                    "answer": "Yes, we can help.",
+                    "dining_scenario": "Gluten-free allergy",
+                    "menu_items": ["Burger"],
+                    "service_steps": ["Confirm", "Prepare", "Serve"],
+                    "safety_info": "Cross-contact risk.",
+                    "tips": ["Ask about contamination."],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr("step4_llm_as_judge.instructor.patch", lambda client: MalformedClient())
 
     result = run_llm_judge(
-        all_generated_qa_records=[fake_record],
         client=object(),
         model_name="test-model",
+        input_path=str(step1_file),
         output_path=str(tmp_path / "judge_output.json"),
     )
 

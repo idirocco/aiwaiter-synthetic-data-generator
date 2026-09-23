@@ -7,10 +7,10 @@ from pathlib import Path
 
 from config import CATEGORIES, MODEL_NAME, PROMPT, get_client, print_modules_loaded, print_startup_banner
 from startup_checks import run_startup_checks
-from step1_generation import generate_step1, load_step1_records
+from step1_generation import build_step1_output_path, generate_step1, load_step1_records
 from step2_validation import validate_step2
-from step3_human_labeling import run_human_labeling
-from step4_llm_as_judge import run_llm_judge
+from step3_human_labeling import build_step3_output_path, run_human_labeling
+from step4_llm_as_judge import build_step4_output_path, run_llm_judge
 from step5_analysis_visualization import run_step5_analysis
 
 run_startup_checks()
@@ -62,6 +62,7 @@ def main(
     print_modules_loaded()
 
     step_name = (step or "all").lower().strip()
+    step1_output = build_step1_output_path(generator_prompt)
 
     if step_name == "step1":
         return generate_step1(
@@ -70,11 +71,12 @@ def main(
             categories=CATEGORIES,
             prompt=PROMPT if generator_prompt is None else None,
             items_per_category=items_per_category,
+            output_path=step1_output,
             prompt_name=generator_prompt,
         )
 
     try:
-        output_file = Path("output/step1_generated_qa.json")
+        output_file = Path(step1_output)
         if step_name in {"step2", "step3", "step4", "all"} and output_file.exists():
             user_choice = input(
                 f"Step 1 output file already exists at {output_file.resolve()}. Regenerate it? [y/N]: "
@@ -86,14 +88,15 @@ def main(
                     categories=CATEGORIES,
                     prompt=PROMPT if generator_prompt is None else None,
                     items_per_category=items_per_category,
+                    output_path=step1_output,
                     force_regenerate=True,
                     prompt_name=generator_prompt,
                 )
-                all_generated_qa_records = load_step1_records()
+                all_generated_qa_records = load_step1_records(input_path=step1_output)
             else:
-                all_generated_qa_records = load_step1_records()
+                all_generated_qa_records = load_step1_records(input_path=step1_output)
         else:
-            all_generated_qa_records = load_step1_records()
+            all_generated_qa_records = load_step1_records(input_path=step1_output)
     except FileNotFoundError:
         if step_name in {"step2", "step3", "step4", "all"}:
             all_generated_qa_records = generate_step1(
@@ -102,34 +105,44 @@ def main(
                 categories=CATEGORIES,
                 prompt=PROMPT if generator_prompt is None else None,
                 items_per_category=items_per_category,
+                output_path=step1_output,
                 force_regenerate=True,
                 prompt_name=generator_prompt,
             )
-            all_generated_qa_records = load_step1_records()
+            all_generated_qa_records = load_step1_records(input_path=step1_output)
         else:
             raise
 
     if step_name == "step2":
-        return validate_step2(all_generated_qa_records)
+        return validate_step2(generator_prompt=generator_prompt)
 
     if step_name == "step3":
-        return run_human_labeling(all_generated_qa_records)
+        return run_human_labeling(generator_prompt=generator_prompt)
 
     if step_name == "step4":
         return run_llm_judge(
-            all_generated_qa_records,
             client=client,
             model_name=MODEL_NAME,
+            generator_prompt=generator_prompt,
             prompt_name=judge_prompt,
         )
 
     if step_name not in {"all", ""}:
         raise ValueError(f"Unsupported pipeline step: {step!r}")
 
-    all_generated_qa_records = validate_step2(all_generated_qa_records)
-    run_human_labeling(all_generated_qa_records)
-    run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME, prompt_name=judge_prompt)
-    return run_step5_analysis()
+    validate_step2(generator_prompt=generator_prompt)
+    run_human_labeling(generator_prompt=generator_prompt)
+    run_llm_judge(
+        client=client,
+        model_name=MODEL_NAME,
+        generator_prompt=generator_prompt,
+        prompt_name=judge_prompt,
+    )
+    return run_step5_analysis(
+        generated_path=step1_output,
+        human_path=build_step3_output_path(generator_prompt),
+        llm_path=build_step4_output_path(generator_prompt),
+    )
 
 
 if __name__ == "__main__":
