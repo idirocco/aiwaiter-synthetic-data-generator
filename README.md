@@ -87,14 +87,14 @@ python3 pipeline.py step5
 Use custom prompt files with named arguments:
 
 ```bash
-python3 pipeline.py [step] [--generator-prompt=NAME] [--judge-prompt=NAME]
+python3 pipeline.py [step] [--generator-prompt=NAME] [--judge-prompt=NAME] [--items-per-category=N]
 ```
 
 Examples:
 
 ```bash
-# Step 1 with a custom generator prompt
-python3 pipeline.py step1 --generator-prompt=my_custom_prompt
+# Step 1 with a custom generator prompt and 5 items per category
+python3 pipeline.py step1 --generator-prompt=my_custom_prompt --items-per-category=5
 
 # Step 4 with a custom judge prompt
 python3 pipeline.py step4 --judge-prompt=my_custom_judge_prompt

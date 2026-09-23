@@ -13,8 +13,6 @@ from step3_human_labeling import run_human_labeling
 from step4_llm_as_judge import run_llm_judge
 from step5_analysis_visualization import run_step5_analysis
 
-items_per_category = 10
-
 run_startup_checks()
 
 
@@ -38,13 +36,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         metavar="NAME",
         help="Judge prompt under prompts/step4_judge/. The .txt extension is optional.",
     )
+    parser.add_argument(
+        "--items-per-category",
+        type=int,
+        default=10,
+        metavar="N",
+        help="Number of Q&A items to generate for each category (default: 10).",
+    )
     args = parser.parse_args(argv)
+    if args.items_per_category < 1:
+        parser.error("--items-per-category must be at least 1")
     args.generator_prompt = args.generator_prompt or None
     args.judge_prompt = args.judge_prompt or None
     return args
 
 
-def main(step: str | None = None, generator_prompt: str | None = None, judge_prompt: str | None = None):
+def main(
+    step: str | None = None,
+    generator_prompt: str | None = None,
+    judge_prompt: str | None = None,
+    items_per_category: int = 10,
+):
     client = get_client()
     print_startup_banner()
     print_modules_loaded()
@@ -122,4 +134,9 @@ def main(step: str | None = None, generator_prompt: str | None = None, judge_pro
 
 if __name__ == "__main__":
     args = parse_args()
-    main(step=args.step, generator_prompt=args.generator_prompt, judge_prompt=args.judge_prompt)
+    main(
+        step=args.step,
+        generator_prompt=args.generator_prompt,
+        judge_prompt=args.judge_prompt,
+        items_per_category=args.items_per_category,
+    )
