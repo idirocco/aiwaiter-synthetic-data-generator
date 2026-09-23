@@ -2,6 +2,7 @@
 # Install dependencies first:
 #   python3 -m pip install -r requirements.txt
 
+import argparse
 from pathlib import Path
 
 from config import CATEGORIES, MODEL_NAME, PROMPT, get_client, print_modules_loaded, print_startup_banner
@@ -17,7 +18,33 @@ items_per_category = 10
 run_startup_checks()
 
 
-def main(step: str | None = None, step1_prompt_name: str | None = None, step4_prompt_name: str | None = None):
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the synthetic data pipeline.")
+    parser.add_argument(
+        "step",
+        nargs="?",
+        default=None,
+        help="Pipeline stage to run: step1, step2, step3, step4, step5, or all (default: all).",
+    )
+    parser.add_argument(
+        "--generator-prompt",
+        default=None,
+        metavar="NAME",
+        help="Generator prompt under prompts/step1_generator/. The .txt extension is optional.",
+    )
+    parser.add_argument(
+        "--judge-prompt",
+        default=None,
+        metavar="NAME",
+        help="Judge prompt under prompts/step4_judge/. The .txt extension is optional.",
+    )
+    args = parser.parse_args(argv)
+    args.generator_prompt = args.generator_prompt or None
+    args.judge_prompt = args.judge_prompt or None
+    return args
+
+
+def main(step: str | None = None, generator_prompt: str | None = None, judge_prompt: str | None = None):
     client = get_client()
     print_startup_banner()
     print_modules_loaded()
@@ -29,9 +56,9 @@ def main(step: str | None = None, step1_prompt_name: str | None = None, step4_pr
             client=client,
             MODEL_NAME=MODEL_NAME,
             categories=CATEGORIES,
-            prompt=PROMPT if step1_prompt_name is None else None,
+            prompt=PROMPT if generator_prompt is None else None,
             items_per_category=items_per_category,
-            prompt_name=step1_prompt_name,
+            prompt_name=generator_prompt,
         )
 
     try:
@@ -45,10 +72,10 @@ def main(step: str | None = None, step1_prompt_name: str | None = None, step4_pr
                     client=client,
                     MODEL_NAME=MODEL_NAME,
                     categories=CATEGORIES,
-                    prompt=PROMPT if step1_prompt_name is None else None,
+                    prompt=PROMPT if generator_prompt is None else None,
                     items_per_category=items_per_category,
                     force_regenerate=True,
-                    prompt_name=step1_prompt_name,
+                    prompt_name=generator_prompt,
                 )
                 all_generated_qa_records = load_step1_records()
             else:
@@ -61,10 +88,10 @@ def main(step: str | None = None, step1_prompt_name: str | None = None, step4_pr
                 client=client,
                 MODEL_NAME=MODEL_NAME,
                 categories=CATEGORIES,
-                prompt=PROMPT if step1_prompt_name is None else None,
+                prompt=PROMPT if generator_prompt is None else None,
                 items_per_category=items_per_category,
                 force_regenerate=True,
-                prompt_name=step1_prompt_name,
+                prompt_name=generator_prompt,
             )
             all_generated_qa_records = load_step1_records()
         else:
@@ -81,7 +108,7 @@ def main(step: str | None = None, step1_prompt_name: str | None = None, step4_pr
             all_generated_qa_records,
             client=client,
             model_name=MODEL_NAME,
-            prompt_name=step4_prompt_name,
+            prompt_name=judge_prompt,
         )
 
     if step_name not in {"all", ""}:
@@ -89,14 +116,10 @@ def main(step: str | None = None, step1_prompt_name: str | None = None, step4_pr
 
     all_generated_qa_records = validate_step2(all_generated_qa_records)
     run_human_labeling(all_generated_qa_records)
-    run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME, prompt_name=step4_prompt_name)
+    run_llm_judge(all_generated_qa_records, client=client, model_name=MODEL_NAME, prompt_name=judge_prompt)
     return run_step5_analysis()
 
 
 if __name__ == "__main__":
-    import sys
-
-    requested_step = sys.argv[1] if len(sys.argv) > 1 else None
-    step1_prompt_name = sys.argv[2] if len(sys.argv) > 2 else None
-    step4_prompt_name = sys.argv[3] if len(sys.argv) > 3 else None
-    main(step=requested_step, step1_prompt_name=step1_prompt_name, step4_prompt_name=step4_prompt_name)
+    args = parse_args()
+    main(step=args.step, generator_prompt=args.generator_prompt, judge_prompt=args.judge_prompt)
