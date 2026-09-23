@@ -105,7 +105,7 @@ python3 pipeline.py all --generator-prompt=my_custom_prompt --judge-prompt=my_cu
 
 Prompt names are resolved from the prompt folders under `prompts/step1_generator/` and `prompts/step4_judge/`. The `.txt` extension is optional; for example, `my_custom_prompt` resolves to `my_custom_prompt.txt`.
 
-Note: Step 1 asks for confirmation before regenerating an existing `output/step1_generated_qa_{generator_prompt}.json` file. When `--generator-prompt` is omitted, the file uses `generator_prompt_default`.
+Note: Step 1 asks for confirmation before regenerating an existing `output/step1_generated_qa_{generator_prompt}.json` file. When `--generator-prompt` is omitted, the file uses `default`.
 
 ## Project structure
 

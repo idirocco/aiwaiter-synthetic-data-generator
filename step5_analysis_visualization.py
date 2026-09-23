@@ -5,6 +5,9 @@ from typing import Any, Iterable
 
 from config import CATEGORIES
 from quality_dimensions import QUALITY_DIMENSIONS
+from step1_generation import build_step1_output_path, generator_prompt_slug
+from step3_human_labeling import build_step3_output_path
+from step4_llm_as_judge import build_step4_output_path
 
 try:
     import matplotlib
@@ -70,8 +73,8 @@ def _safe_label_map(record: dict[str, Any], labels_key: str) -> dict[str, int]:
 
 def merge_step_outputs(
     generated_path: str | Path = OUTPUT_DIR / "step1_generated_qa.json",
-    human_path: str | Path = OUTPUT_DIR / "step3_human_labels_generator_prompt_default.json",
-    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels_generator_prompt_default.json",
+    human_path: str | Path = OUTPUT_DIR / "step3_human_labels_default.json",
+    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels_default.json",
 ) -> list[dict[str, Any]]:
     generated_records = _read_json(generated_path)
     human_records = {r.get("trace_id"): r for r in _read_json(human_path) if r.get("trace_id")}
@@ -380,22 +383,57 @@ def plot_before_after_per_dimension(records: Iterable[dict[str, Any]], output_pa
     plt.close(fig)
 
 
-def generate_step5_visualizations(records: Iterable[dict[str, Any]], output_dir: str | Path = VISUALIZATION_DIR) -> dict[str, Path]:
+def build_step5_output_path(
+    stem: str,
+    extension: str,
+    generator_prompt: str | None = None,
+    judge_prompt: str | None = None,
+    output_dir: str | Path = VISUALIZATION_DIR,
+) -> Path:
+    prompt_slug = f"{generator_prompt_slug(generator_prompt)}_{generator_prompt_slug(judge_prompt)}"
+    return Path(output_dir) / f"{stem}_{prompt_slug}.{extension}"
+
+
+def generate_step5_visualizations(
+    records: Iterable[dict[str, Any]],
+    output_dir: str | Path = VISUALIZATION_DIR,
+    generator_prompt: str | None = None,
+    judge_prompt: str | None = None,
+) -> dict[str, Path]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     record_list = list(records)
     overall_metrics = compute_overall_metrics(record_list)
     summary = aggregate_segment_metrics(record_list, group_key="category_name")
-    metrics_path = save_segment_metrics_to_json(summary, output_dir / "step5_segment_metrics.json")
+    metrics_path = save_segment_metrics_to_json(
+        summary,
+        build_step5_output_path(
+            "step5_segment_metrics",
+            "json",
+            generator_prompt=generator_prompt,
+            judge_prompt=judge_prompt,
+            output_dir=output_dir,
+        ),
+    )
 
     saved_paths = {
         "segment_metrics": metrics_path,
-        "segment_heatmap": output_dir / "step5_segment_heatmap.png",
-        "dimension_pass_rates": output_dir / "step5_dimension_pass_rates.png",
-        "agreement_by_dimension": output_dir / "step5_human_llm_agreement.png",
-        "category_distribution": output_dir / "step5_category_distribution.png",
-        "before_after": output_dir / "step5_before_after_per_dimension.png",
+        "segment_heatmap": build_step5_output_path(
+            "step5_segment_heatmap", "png", generator_prompt, judge_prompt, output_dir
+        ),
+        "dimension_pass_rates": build_step5_output_path(
+            "step5_dimension_pass_rates", "png", generator_prompt, judge_prompt, output_dir
+        ),
+        "agreement_by_dimension": build_step5_output_path(
+            "step5_human_llm_agreement", "png", generator_prompt, judge_prompt, output_dir
+        ),
+        "category_distribution": build_step5_output_path(
+            "step5_category_distribution", "png", generator_prompt, judge_prompt, output_dir
+        ),
+        "before_after": build_step5_output_path(
+            "step5_before_after_per_dimension", "png", generator_prompt, judge_prompt, output_dir
+        ),
     }
 
     plot_segment_heatmap(record_list, saved_paths["segment_heatmap"], group_key="category_name")
@@ -409,14 +447,28 @@ def generate_step5_visualizations(records: Iterable[dict[str, Any]], output_dir:
 
 
 def run_step5_analysis(
-    generated_path: str | Path = OUTPUT_DIR / "step1_generated_qa.json",
-    human_path: str | Path = OUTPUT_DIR / "step3_human_labels_generator_prompt_default.json",
-    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels_generator_prompt_default.json",
+    generated_path: str | Path | None = None,
+    human_path: str | Path | None = None,
+    llm_path: str | Path | None = None,
     output_dir: str | Path = VISUALIZATION_DIR,
+    generator_prompt: str | None = None,
+    judge_prompt: str | None = None,
 ) -> dict[str, Any]:
+    if generated_path is None:
+        generated_path = build_step1_output_path(generator_prompt)
+    if human_path is None:
+        human_path = build_step3_output_path(generator_prompt)
+    if llm_path is None:
+        llm_path = build_step4_output_path(generator_prompt)
+
     merged_records = merge_step_outputs(generated_path=generated_path, human_path=human_path, llm_path=llm_path)
     summary = aggregate_segment_metrics(merged_records, group_key="category_name")
-    plots = generate_step5_visualizations(merged_records, output_dir=output_dir)
+    plots = generate_step5_visualizations(
+        merged_records,
+        output_dir=output_dir,
+        generator_prompt=generator_prompt,
+        judge_prompt=judge_prompt,
+    )
     return {
         "records": merged_records,
         "summary": summary,

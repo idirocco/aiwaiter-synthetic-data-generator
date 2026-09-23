@@ -9,8 +9,8 @@ from config import CATEGORIES, MODEL_NAME, PROMPT, get_client, print_modules_loa
 from startup_checks import run_startup_checks
 from step1_generation import build_step1_output_path, generate_step1, load_step1_records
 from step2_validation import validate_step2
-from step3_human_labeling import build_step3_output_path, run_human_labeling
-from step4_llm_as_judge import build_step4_output_path, run_llm_judge
+from step3_human_labeling import run_human_labeling
+from step4_llm_as_judge import run_llm_judge
 from step5_analysis_visualization import run_step5_analysis
 
 run_startup_checks()
@@ -63,6 +63,9 @@ def main(
 
     step_name = (step or "all").lower().strip()
     step1_output = build_step1_output_path(generator_prompt)
+
+    if step_name == "step5":
+        return run_step5_analysis(generator_prompt=generator_prompt, judge_prompt=judge_prompt)
 
     if step_name == "step1":
         return generate_step1(
@@ -138,11 +141,7 @@ def main(
         generator_prompt=generator_prompt,
         prompt_name=judge_prompt,
     )
-    return run_step5_analysis(
-        generated_path=step1_output,
-        human_path=build_step3_output_path(generator_prompt),
-        llm_path=build_step4_output_path(generator_prompt),
-    )
+    return run_step5_analysis(generator_prompt=generator_prompt, judge_prompt=judge_prompt)
 
 
 if __name__ == "__main__":
