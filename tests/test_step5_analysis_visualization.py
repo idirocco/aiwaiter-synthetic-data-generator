@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from step4_llm_as_judge import build_judge_output_path, build_step4_output_path, load_judge_prompt
-from step5_analysis_visualization import aggregate_segment_metrics, run_step5_analysis
+from step5_analysis_visualization import aggregate_segment_metrics, build_step5_output_path, run_step5_analysis
 
 
 def test_load_judge_prompt_reads_prompt_file(tmp_path):
@@ -17,9 +17,9 @@ def test_load_judge_prompt_reads_prompt_file(tmp_path):
     assert "{question}" in prompt
 
 
-def test_load_judge_prompt_defaults_to_judge_prompt_default():
+def test_load_defaults_to_default():
     prompt_root = Path(__file__).resolve().parent.parent / "prompts" / "step4_judge"
-    expected = (prompt_root / "judge_prompt_default.txt").read_text(encoding="utf-8").strip()
+    expected = (prompt_root / "default.txt").read_text(encoding="utf-8").strip()
 
     assert load_judge_prompt() == expected
 
@@ -29,7 +29,20 @@ def test_build_step4_output_path_includes_generator_prompt():
     default_path = build_step4_output_path()
 
     assert custom_path.endswith("step4_llm_judge_labels_my_custom_prompt.json")
-    assert default_path.endswith("step4_llm_judge_labels_generator_prompt_default.json")
+    assert default_path.endswith("step4_llm_judge_labels_default.json")
+
+
+def test_build_step5_output_path_includes_generator_and_judge_prompts():
+    custom_path = build_step5_output_path(
+        "step5_segment_metrics",
+        "json",
+        generator_prompt="my_custom_prompt.txt",
+        judge_prompt="my_custom_judge.txt",
+    )
+    default_path = build_step5_output_path("step5_segment_heatmap", "png")
+
+    assert custom_path.name == "step5_segment_metrics_my_custom_prompt_my_custom_judge.json"
+    assert default_path.name == "step5_segment_heatmap_default_default.png"
 
 
 def test_build_judge_output_path_includes_prompt_name():
@@ -161,9 +174,11 @@ def test_run_step5_analysis_writes_segment_metrics_json(tmp_path):
         human_path=human_path,
         llm_path=llm_path,
         output_dir=output_dir,
+        generator_prompt="my_custom_prompt",
+        judge_prompt="my_custom_judge",
     )
 
-    metrics_path = output_dir / "step5_segment_metrics.json"
+    metrics_path = output_dir / "step5_segment_metrics_my_custom_prompt_my_custom_judge.json"
     assert metrics_path.exists()
     payload = json.loads(metrics_path.read_text(encoding="utf-8"))
     assert "Menu Guidance & Recommendations" in payload

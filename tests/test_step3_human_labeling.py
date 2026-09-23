@@ -16,7 +16,7 @@ class FakeQAItem:
 
 
 def test_run_human_labeling_defaults_to_yes_on_blank_input(monkeypatch, tmp_path):
-    step1_file = tmp_path / "step1_generated_qa_generator_prompt_default.json"
+    step1_file = tmp_path / "step1_generated_qa_default.json"
     step1_file.write_text(
         json.dumps(
             [
@@ -72,7 +72,7 @@ def test_build_step3_output_path_includes_generator_prompt():
     default_path = build_step3_output_path()
 
     assert custom_path.endswith("step3_human_labels_my_custom_prompt.json")
-    assert default_path.endswith("step3_human_labels_generator_prompt_default.json")
+    assert default_path.endswith("step3_human_labels_default.json")
 
 
 def test_build_judge_prompt_includes_rubric_examples_and_human_priority():

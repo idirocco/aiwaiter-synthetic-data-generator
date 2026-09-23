@@ -56,9 +56,9 @@ class FakePatchedClient:
         self.chat = FakeChat()
 
 
-def test_load_step1_prompt_defaults_to_generator_prompt_default():
+def test_load_step1_prompt_defaults_to_default():
     prompt_root = Path(__file__).resolve().parent.parent / "prompts" / "step1_generator"
-    expected = (prompt_root / "generator_prompt_default.txt").read_text(encoding="utf-8").strip()
+    expected = (prompt_root / "default.txt").read_text(encoding="utf-8").strip()
 
     assert load_step1_prompt() == expected
 
@@ -68,7 +68,7 @@ def test_build_step1_output_path_includes_generator_prompt():
     default_path = build_step1_output_path()
 
     assert custom_path.endswith("step1_generated_qa_my_custom_prompt.json")
-    assert default_path.endswith("step1_generated_qa_generator_prompt_default.json")
+    assert default_path.endswith("step1_generated_qa_default.json")
 
 
 def test_generate_step1_names_output_after_generator_prompt(monkeypatch, tmp_path):
