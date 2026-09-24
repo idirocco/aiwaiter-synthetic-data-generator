@@ -4,7 +4,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
-MODEL_NAME = "meta-llama/llama-3.1-8b-instruct"
+GENERATOR_MODEL_NAME = "meta-llama/llama-3.1-8b-instruct" #20B gpt-oss model
+LLM_JUDGE_MODEL_NAME = "openai/gpt-oss-20b" #120B model
+
 OUTPUT_DIR = Path("output")
 
 def ensure_output_dir() -> Path:
@@ -18,7 +20,7 @@ def output_path(filename: str) -> Path:
 
 def print_startup_banner():
     print("✅ OpenRouter API configured!")
-    print(f"   Model: {MODEL_NAME}")
+    print(f"   Generator model: {GENERATOR_MODEL_NAME}")
     print()
 
 

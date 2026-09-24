@@ -5,7 +5,7 @@
 import argparse
 from pathlib import Path
 
-from config import CATEGORIES, MODEL_NAME, PROMPT, get_client, print_modules_loaded, print_startup_banner
+from config import CATEGORIES, GENERATOR_MODEL_NAME, PROMPT, get_client, print_modules_loaded, print_startup_banner
 from startup_checks import run_startup_checks
 from step1_generation import build_step1_output_path, generate_step1, load_step1_records
 from step2_validation import validate_step2
@@ -70,7 +70,7 @@ def main(
     if step_name == "step1":
         return generate_step1(
             client=client,
-            MODEL_NAME=MODEL_NAME,
+            GENERATOR_MODEL_NAME=GENERATOR_MODEL_NAME,
             categories=CATEGORIES,
             prompt=PROMPT if generator_prompt is None else None,
             items_per_category=items_per_category,
@@ -87,7 +87,7 @@ def main(
             if user_choice in {"y", "yes"}:
                 all_generated_qa_records = generate_step1(
                     client=client,
-                    MODEL_NAME=MODEL_NAME,
+                    GENERATOR_MODEL_NAME=GENERATOR_MODEL_NAME,
                     categories=CATEGORIES,
                     prompt=PROMPT if generator_prompt is None else None,
                     items_per_category=items_per_category,
@@ -104,7 +104,7 @@ def main(
         if step_name in {"step2", "step3", "step4", "all"}:
             all_generated_qa_records = generate_step1(
                 client=client,
-                MODEL_NAME=MODEL_NAME,
+                GENERATOR_MODEL_NAME=GENERATOR_MODEL_NAME,
                 categories=CATEGORIES,
                 prompt=PROMPT if generator_prompt is None else None,
                 items_per_category=items_per_category,
@@ -125,7 +125,6 @@ def main(
     if step_name == "step4":
         return run_llm_judge(
             client=client,
-            model_name=MODEL_NAME,
             generator_prompt=generator_prompt,
             prompt_name=judge_prompt,
         )
@@ -137,7 +136,6 @@ def main(
     run_human_labeling(generator_prompt=generator_prompt)
     run_llm_judge(
         client=client,
-        model_name=MODEL_NAME,
         generator_prompt=generator_prompt,
         prompt_name=judge_prompt,
     )

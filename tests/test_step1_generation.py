@@ -81,7 +81,7 @@ def test_generate_step1_names_output_after_generator_prompt(monkeypatch, tmp_pat
 
     generate_step1(
         client=object(),
-        MODEL_NAME="test-model",
+        GENERATOR_MODEL_NAME="test-model",
         categories=[{"name": "Test Category", "description": "Test description"}],
         items_per_category=1,
         force_regenerate=True,
@@ -101,7 +101,7 @@ def test_generate_step1_skips_when_existing_file_is_not_regenerated(monkeypatch,
 
     result = generate_step1(
         client=object(),
-        MODEL_NAME="test-model",
+        GENERATOR_MODEL_NAME="test-model",
         categories=[{"name": "Test Category", "description": "Test description"}],
         prompt="Prompt {category} {items_per_category}",
         items_per_category=1,
@@ -121,7 +121,7 @@ def test_generate_step1_force_regenerate_skips_confirmation(monkeypatch, tmp_pat
 
     result = generate_step1(
         client=object(),
-        MODEL_NAME="test-model",
+        GENERATOR_MODEL_NAME="test-model",
         categories=[{"name": "Test Category", "description": "Test description"}],
         prompt="Prompt {category} {items_per_category}",
         items_per_category=1,
@@ -150,7 +150,7 @@ def test_generate_step1_handles_rate_limit_error(monkeypatch, tmp_path):
 
     result = generate_step1(
         client=object(),
-        MODEL_NAME="test-model",
+        GENERATOR_MODEL_NAME="test-model",
         categories=[{"name": "Test Category", "description": "Test description"}],
         prompt="Prompt {category} {items_per_category}",
         items_per_category=1,
@@ -196,7 +196,6 @@ def test_run_llm_judge_handles_malformed_response(monkeypatch, tmp_path):
 
     result = run_llm_judge(
         client=object(),
-        model_name="test-model",
         input_path=str(step1_file),
         output_path=str(tmp_path / "judge_output.json"),
     )
@@ -215,7 +214,7 @@ def test_generate_step1_loops_through_each_category(monkeypatch, tmp_path):
 
     result = generate_step1(
         client=object(),
-        MODEL_NAME="test-model",
+        GENERATOR_MODEL_NAME="test-model",
         categories=[
             {"name": "Category A", "description": "Alpha"},
             {"name": "Category B", "description": "Beta"},

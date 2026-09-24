@@ -168,7 +168,7 @@ def save_generated_qa_json(all_generated_qa_records, output_path: str | None = N
 
 def generate_step1(
     client,
-    MODEL_NAME,
+    GENERATOR_MODEL_NAME,
     categories,
     prompt: str | None = None,
     items_per_category=10,
@@ -243,7 +243,7 @@ def generate_step1(
 
             try:
                 response_pydantic_model = patched_client.chat.completions.create(
-                    model=MODEL_NAME,
+                    model=GENERATOR_MODEL_NAME,
                     messages=[
                         {
                             "role": "system",
@@ -268,7 +268,7 @@ def generate_step1(
                     "category_name": category_name,
                     "category_description": category_description,
                     "timestamp": current_timestamp,
-                    "model_name": MODEL_NAME,
+                    "model_name": GENERATOR_MODEL_NAME,
                     "raw_llm_response_json": response_pydantic_model.model_dump_json(),
                 }
                 all_generated_qa_records.append(record)
@@ -283,7 +283,7 @@ def generate_step1(
                 print(f"    Tips: {', '.join(qa_item.tips)}")
                 print(f"    --- Metadata ---")
                 print(f"    Timestamp: {current_timestamp}")
-                print(f"    Model Name: {MODEL_NAME}")
+                print(f"    Model Name: {GENERATOR_MODEL_NAME}")
                 print(f"    Category: {category_name}")
                 print(f"    Raw LLM Response (snippet): {record['raw_llm_response_json'][:100]}...")
                 print(f"    Prompt Variant: {prompt_variant}")

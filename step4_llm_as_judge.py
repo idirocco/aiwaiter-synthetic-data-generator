@@ -1,6 +1,7 @@
 # Step 4 (LLM-as-Judge — 6 Dimensions):
-# An independent LLM judge scores the same 6 dimensions for every item using a
-# structured Instructor/Pydantic schema and a lower temperature for deterministic scoring.
+# An independent LLM judge (LLM_JUDGE_MODEL_NAME) scores the same 6 dimensions
+# for every item using a structured Instructor/Pydantic schema and a lower
+# temperature for deterministic scoring.
 
 import json
 from pathlib import Path
@@ -10,7 +11,7 @@ import instructor
 import openai
 from pydantic import BaseModel, Field
 
-from config import output_path
+from config import LLM_JUDGE_MODEL_NAME, output_path
 from quality_dimensions import QUALITY_DIMENSIONS
 from step1_generation import build_step1_output_path, generator_prompt_slug, load_step1_records
 
@@ -33,8 +34,12 @@ def load_judge_prompt(prompt_name: str | None = None, prompts_dir: str | Path | 
     return template
 
 
-def build_step4_output_path(generator_prompt: str | None = None) -> str:
-    return str(output_path(f"step4_llm_judge_labels_{generator_prompt_slug(generator_prompt)}.json"))
+def build_step4_output_path(
+    generator_prompt: str | None = None,
+    judge_prompt: str | None = None,
+) -> str:
+    prompt_slug = f"{generator_prompt_slug(generator_prompt)}_{generator_prompt_slug(judge_prompt)}"
+    return str(output_path(f"step4_llm_judge_labels_{prompt_slug}.json"))
 
 
 def build_judge_output_path(prompt_name: str | None = None, prefix: str = "step4_llm_judge_labels") -> str:
@@ -109,9 +114,10 @@ def save_judge_results_to_json(
     judged_records,
     output_path: str | None = None,
     generator_prompt: str | None = None,
+    judge_prompt: str | None = None,
 ):
     if output_path is None:
-        output_path = build_step4_output_path(generator_prompt)
+        output_path = build_step4_output_path(generator_prompt, judge_prompt)
 
     output_records = []
     for idx, record in enumerate(judged_records):
@@ -139,7 +145,6 @@ def save_judge_results_to_json(
 
 def run_llm_judge(
     client,
-    model_name: str,
     generator_prompt: str | None = None,
     input_path: str | None = None,
     temperature: float = 0.1,
@@ -152,7 +157,7 @@ def run_llm_judge(
     all_generated_qa_records = load_step1_records(input_path=resolved_path)
 
     if output_path is None:
-        output_path = build_step4_output_path(generator_prompt)
+        output_path = build_step4_output_path(generator_prompt, prompt_name)
     patched_client = instructor.patch(client)
 
     judged_records = []
@@ -161,7 +166,7 @@ def run_llm_judge(
         print("No records available for Step 4 judging.")
         return judged_records
 
-    print("\n--- Starting LLM-as-Judge (Step 4) ---")
+    print(f"\n--- Starting LLM-as-Judge (Step 4) using {LLM_JUDGE_MODEL_NAME} ---")
 
     for i, record in enumerate(all_generated_qa_records):
         qa_item = record["qa_item"]
@@ -170,7 +175,7 @@ def run_llm_judge(
         judge_prompt = build_judge_prompt(qa_item, prompt_name=prompt_name, prompts_dir=prompts_dir)
         try:
             judge_result = patched_client.chat.completions.create(
-                model=model_name,
+                model=LLM_JUDGE_MODEL_NAME,
                 messages=[
                     {
                         "role": "system",
