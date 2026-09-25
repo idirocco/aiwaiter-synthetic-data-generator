@@ -74,7 +74,7 @@ def _safe_label_map(record: dict[str, Any], labels_key: str) -> dict[str, int]:
 def merge_step_outputs(
     generated_path: str | Path = OUTPUT_DIR / "step1_generated_qa.json",
     human_path: str | Path = OUTPUT_DIR / "step3_human_labels_default.json",
-    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels_default.json",
+    llm_path: str | Path = OUTPUT_DIR / "step4_llm_judge_labels_default_default.json",
 ) -> list[dict[str, Any]]:
     generated_records = _read_json(generated_path)
     human_records = {r.get("trace_id"): r for r in _read_json(human_path) if r.get("trace_id")}
@@ -221,6 +221,30 @@ def save_segment_metrics_to_json(summary: dict[str, Any], output_path: str | Pat
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
     print(f"Saved segment-level metrics to: {file_path.resolve()}")
+    return file_path
+
+
+def build_agreement_metrics(overall_metrics: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
+    return {
+        dimension: {
+            "agreement_rate": overall_metrics[dimension]["agreement_rate"],
+            "human_pass_rate": overall_metrics[dimension]["human_pass_rate"],
+            "llm_pass_rate": overall_metrics[dimension]["llm_pass_rate"],
+        }
+        for dimension in QUALITY_DIMENSIONS
+        if dimension in overall_metrics
+    }
+
+
+def save_agreement_metrics_to_json(
+    overall_metrics: dict[str, dict[str, float]],
+    output_path: str | Path = VISUALIZATION_DIR / "step5_human_llm_agreement.json",
+) -> Path:
+    file_path = Path(output_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = build_agreement_metrics(overall_metrics)
+    file_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    print(f"Saved human-LLM agreement metrics to: {file_path.resolve()}")
     return file_path
 
 
@@ -417,30 +441,42 @@ def generate_step5_visualizations(
         ),
     )
 
+    agreement_path = save_agreement_metrics_to_json(
+        overall_metrics,
+        build_step5_output_path(
+            "step5_human_llm_agreement",
+            "json",
+            generator_prompt=generator_prompt,
+            judge_prompt=judge_prompt,
+            output_dir=output_dir,
+        ),
+    )
+
     saved_paths = {
         "segment_metrics": metrics_path,
-        "segment_heatmap": build_step5_output_path(
-            "step5_segment_heatmap", "png", generator_prompt, judge_prompt, output_dir
-        ),
-        "dimension_pass_rates": build_step5_output_path(
-            "step5_dimension_pass_rates", "png", generator_prompt, judge_prompt, output_dir
-        ),
+        "agreement_by_dimension_json": agreement_path,
+        # "segment_heatmap": build_step5_output_path(
+        #     "step5_segment_heatmap", "png", generator_prompt, judge_prompt, output_dir
+        # ),
+        # "dimension_pass_rates": build_step5_output_path(
+        #     "step5_dimension_pass_rates", "png", generator_prompt, judge_prompt, output_dir
+        # ),
         "agreement_by_dimension": build_step5_output_path(
             "step5_human_llm_agreement", "png", generator_prompt, judge_prompt, output_dir
         ),
-        "category_distribution": build_step5_output_path(
-            "step5_category_distribution", "png", generator_prompt, judge_prompt, output_dir
-        ),
-        "before_after": build_step5_output_path(
-            "step5_before_after_per_dimension", "png", generator_prompt, judge_prompt, output_dir
-        ),
+        # "category_distribution": build_step5_output_path(
+        #     "step5_category_distribution", "png", generator_prompt, judge_prompt, output_dir
+        # ),
+        # "before_after": build_step5_output_path(
+        #     "step5_before_after_per_dimension", "png", generator_prompt, judge_prompt, output_dir
+        # ),
     }
 
-    plot_segment_heatmap(record_list, saved_paths["segment_heatmap"], group_key="category_name")
-    plot_dimension_bar_chart(overall_metrics, "Per-dimension pass rate (LLM judge)", saved_paths["dimension_pass_rates"])
+    # plot_segment_heatmap(record_list, saved_paths["segment_heatmap"], group_key="category_name")
+    # plot_dimension_bar_chart(overall_metrics, "Per-dimension pass rate (LLM judge)", saved_paths["dimension_pass_rates"])
     plot_agreement_bar_chart(overall_metrics, saved_paths["agreement_by_dimension"])
-    plot_category_distribution(record_list, saved_paths["category_distribution"])
-    plot_before_after_per_dimension(record_list, saved_paths["before_after"])
+    # plot_category_distribution(record_list, saved_paths["category_distribution"])
+    # plot_before_after_per_dimension(record_list, saved_paths["before_after"])
 
     print(f"Saved step 5 visualizations to: {output_dir.resolve()}")
     return saved_paths
@@ -459,7 +495,7 @@ def run_step5_analysis(
     if human_path is None:
         human_path = build_step3_output_path(generator_prompt)
     if llm_path is None:
-        llm_path = build_step4_output_path(generator_prompt)
+        llm_path = build_step4_output_path(generator_prompt, judge_prompt)
 
     merged_records = merge_step_outputs(generated_path=generated_path, human_path=human_path, llm_path=llm_path)
     summary = aggregate_segment_metrics(merged_records, group_key="category_name")

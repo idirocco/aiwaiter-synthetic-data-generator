@@ -9,7 +9,7 @@ from typing import Any
 
 import instructor
 import openai
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from config import LLM_JUDGE_MODEL_NAME, output_path
 from quality_dimensions import QUALITY_DIMENSIONS
@@ -51,8 +51,16 @@ def build_judge_output_path(prompt_name: str | None = None, prefix: str = "step4
 
 
 class DimensionVerdict(BaseModel):
-    pass_: bool = Field(description="Whether this dimension passes for the item")
-    rationale: str = Field(description="Short justification for the verdict")
+    model_config = ConfigDict(populate_by_name=True)
+
+    pass_: bool = Field(
+        alias="pass",
+        description="Whether this dimension passes for the item",
+    )
+    rationale: str = Field(
+        default="",
+        description="Short justification for the verdict",
+    )
 
 
 class JudgeOutput(BaseModel):
@@ -158,7 +166,7 @@ def run_llm_judge(
 
     if output_path is None:
         output_path = build_step4_output_path(generator_prompt, prompt_name)
-    patched_client = instructor.patch(client)
+    patched_client = instructor.patch(client, mode=instructor.Mode.JSON)
 
     judged_records = []
 

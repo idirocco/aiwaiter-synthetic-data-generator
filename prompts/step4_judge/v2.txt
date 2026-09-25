@@ -30,8 +30,17 @@ Edge cases:
 - One specific tip saves a second generic tip. Two generic tips fail.
 - An obvious but concrete tip ("avoid fish sauce with a shellfish allergy") passes.
 
+answer_completeness — score the answer against the question.
+Pass criteria: the answer gives a direct reply (a dish, a choice, a modification, or the next step for this request).
+Fail examples:
+- The reply ignores the question.
+- "Sure, we can help with that," with no dish, choice, or next step.
+Edge cases:
+- Do not require the answer to repeat every menu item, service step, or constraint. Those have their own fields.
+- A dish that is not in the menu list still passes when it answers the question.
+- A short reply passes when it still answers the question.
+
 Other dimensions — pass only when clearly met:
-- answer_completeness: the answer addresses the question with this scenario's menu, steps, and constraints.
 - menu_realism: dishes and drinks fit a mid-range full-service restaurant and this request.
 - scope_appropriateness: the response stays on this order.
 - context_clarity: a reader can tell who is asking, what they want, and what the waiter will do.
